@@ -8,12 +8,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public class ReflectionHelper {
-
-  // Size in bytes of the fake byte buffer size used to create
-  // zero-ed packets if there's no empty default constructor
-  private static final int FAKE_BUF_SIZE = 1024;
 
   private final MethodHandle M_CIS__AS_NEW_CRAFT_STACK, M_FURNACE__GET_LUT, M_CIS__GET_TYPE;
 
@@ -24,10 +21,10 @@ public class ReflectionHelper {
   @Getter private final int[] versionNumbers;
   @Getter private final boolean refactored;
 
-  public ReflectionHelper() throws Exception {
+  public ReflectionHelper(@Nullable Supplier<String> versionSupplier) throws Exception {
     this.burningTimes = new HashMap<>();
 
-    this.versionStr = findVersion();
+    this.versionStr = versionSupplier == null ? findVersion() : versionSupplier.get();
     this.versionNumbers = parseVersion(this.versionStr);
     this.refactored = this.versionNumbers[1] >= 17;
 
