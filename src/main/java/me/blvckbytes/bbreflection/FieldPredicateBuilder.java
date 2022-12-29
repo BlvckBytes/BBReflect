@@ -215,7 +215,13 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
       // Check generic parameters, if applicable
       int numGenerics = genericTypes.size();
       if (numGenerics > 0) {
-        Type[] types = ((ParameterizedType) f.getGenericType()).getActualTypeArguments();
+        Type genericType = f.getGenericType();
+
+        // Not a generic type (<...>)
+        if (!(genericType instanceof ParameterizedType))
+          return false;
+
+        Type[] types = ((ParameterizedType) genericType).getActualTypeArguments();
 
         // Not enough generic type parameters available
         if (types.length < numGenerics)
@@ -223,7 +229,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
 
         // Type parameters need to match in sequence
         for (int i = 0; i < numGenerics; i++) {
-          if (!genericTypes.get(i).matches((Class<?>) types[i]))
+          if (!genericTypes.get(i).matches(unwrapType(types[i])))
             return false;
         }
       }
@@ -234,5 +240,20 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
 
       return true;
     });
+  }
+
+  /**
+   * Attempts to unwrap a given type to it's raw type class
+   * @param type Type to unwrap
+   * @return Unwrapped type
+   */
+  private Class<?> unwrapType(Type type) {
+    if (type instanceof Class)
+      return (Class<?>) type;
+
+    if (type instanceof ParameterizedType)
+      return unwrapType(((ParameterizedType) type).getRawType());
+
+    throw new IllegalStateException("Cannot unwrap type of class=" + type.getClass());
   }
 }

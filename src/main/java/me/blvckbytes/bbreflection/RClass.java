@@ -193,6 +193,10 @@ public enum RClass {
     "net.minecraft.network.protocol.handshake.PacketHandshakingInSetProtocol",
     "net.minecraft.server.{v}.PacketHandshakingInSetProtocol"
   ),
+  PACKET_I_LOGIN(
+    "net.minecraft.network.protocol.login.PacketLoginInStart",
+    "net.minecraft.server.{v}.PacketLoginInStart"
+  ),
   PACKET_I_KEEP_ALIVE(
     "net.minecraft.network.protocol.game.PacketPlayInKeepAlive",
     "net.minecraft.server.{v}.PacketPlayInKeepAlive"
