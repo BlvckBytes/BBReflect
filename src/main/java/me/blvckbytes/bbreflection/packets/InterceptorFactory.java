@@ -1,0 +1,235 @@
+package me.blvckbytes.bbreflection.packets;
+
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.*;
+import me.blvckbytes.bbreflection.*;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
+import java.util.function.Consumer;
+
+import static org.bukkit.Bukkit.getServer;
+
+public class InterceptorFactory {
+
+  private final String handlerName;
+
+  private final ClassHandle C_PACKET_LOGIN;
+  private final MethodHandle M_CRAFT_PLAYER__HANDLE;
+  private final @Nullable FieldHandle F_PACKET_LOGIN__GAME_PROFILE;
+  private @Nullable FieldHandle F_PACKET_LOGIN__NAME;
+  private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION, F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER, F_NETWORK_MANAGER__CHANNEL;
+
+  private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
+  private final List<Interceptor> interceptors;
+
+  public InterceptorFactory(ReflectionHelper helper, String handlerName) throws Exception {
+    this.handlerName = handlerName;
+    this.interceptors = new ArrayList<>();
+    this.channelHandlers = new HashMap<>();
+
+    ClassHandle C_CRAFT_PLAYER = helper.getClass(RClass.CRAFT_PLAYER);
+    ClassHandle C_ENTITY_PLAYER = helper.getClass(RClass.ENTITY_PLAYER);
+    ClassHandle C_PLAYER_CONNECTION = helper.getClass(RClass.PLAYER_CONNECTION);
+    ClassHandle C_NETWORK_MANAGER = helper.getClass(RClass.NETWORK_MANAGER);
+    ClassHandle C_CRAFT_SERVER = helper.getClass(RClass.CRAFT_SERVER);
+    ClassHandle C_MINECRAFT_SERVER = helper.getClass(RClass.MINECRAFT_SERVER);
+    ClassHandle C_SERVER_CONNECTION = helper.getClass(RClass.SERVER_CONNECTION);
+
+    C_PACKET_LOGIN = helper.getClass(RClass.PACKET_I_LOGIN);
+
+    F_CRAFT_SERVER__MINECRAFT_SERVER = C_CRAFT_SERVER
+      .locateField()
+      .withType(C_MINECRAFT_SERVER, false, Assignability.TYPE_TO_TARGET)
+      .required();
+
+    F_MINECRAFT_SERVER__SERVER_CONNECTION = C_MINECRAFT_SERVER.locateField().withType(C_SERVER_CONNECTION).required();
+    F_SERVER_CONNECTION__CHANNEL_FUTURES = C_SERVER_CONNECTION.locateField().withType(List.class).withGeneric(ChannelFuture.class).required();
+
+    F_PACKET_LOGIN__GAME_PROFILE = C_PACKET_LOGIN.locateField().withType(GameProfile.class).optional();
+
+    if (F_PACKET_LOGIN__GAME_PROFILE == null)
+      F_PACKET_LOGIN__NAME = C_PACKET_LOGIN.locateField().withType(String.class).required();
+
+    // CraftPlayer->EntityPlayer (handle)
+    M_CRAFT_PLAYER__HANDLE = C_CRAFT_PLAYER.locateMethod().withReturnType(C_ENTITY_PLAYER).required();
+
+    // EntityPlayer->PlayerConnection
+    F_ENTITY_PLAYER__PLAYER_CONNECTION = C_ENTITY_PLAYER.locateField().withType(C_PLAYER_CONNECTION).required();
+
+    // PlayerConnection->NetworkManager
+    F_PLAYER_CONNECTION__NETWORK_MANAGER = C_PLAYER_CONNECTION.locateField().withType(C_NETWORK_MANAGER).required();
+
+    // NetworkManager -> Channel
+    F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField().withType(Channel.class).required();
+  }
+
+  /**
+   * Attaches an initialization listener function to a channel which will get called
+   * as soon as that channel is fully initialized and ready to be injected
+   * @param channel Channel to attach the listener to
+   * @param container Container to synchronize over while waiting for initialization
+   * @param initialized Callback containing the initialized channel
+   * @return Listener handle to detach after use
+   */
+  private ChannelInboundHandlerAdapter attachInitializationListener(Channel channel, List<?> container, Consumer<Channel> initialized) {
+    // Called when a new channel has been instantiated
+    ChannelInboundHandlerAdapter adapter = new ChannelInboundHandlerAdapter() {
+
+      @Override
+      public void channelRead(ChannelHandlerContext channelHandlerContext, Object o) {
+        ((Channel) o).pipeline().addFirst(new ChannelInitializer<>() {
+
+          @Override
+          protected void initChannel(Channel channel) {
+
+            // Add this initializer as the first item in the channel to be the
+            // first receiver which gets a hold of it
+            channel.pipeline().addLast(new ChannelInitializer<>() {
+
+              @Override
+              protected void initChannel(Channel channel) {
+
+                // Wait for initialization
+                synchronized (container) {
+                  channel.eventLoop().submit(() -> initialized.accept(channel));
+                }
+              }
+            });
+          }
+        });
+
+        channelHandlerContext.fireChannelRead(o);
+      }
+    };
+
+    channel.pipeline().addFirst(adapter);
+    return adapter;
+  }
+
+  /**
+   * Attach an initialization listener using {@link #attachInitializationListener}
+   * to every currently available server channel
+   * @param interceptor Consumer of internally created interception instances
+   */
+  private void attachInitializationListeners(Consumer<Interceptor> interceptor) {
+    try {
+      Object minecraftServer = F_CRAFT_SERVER__MINECRAFT_SERVER.get(getServer());
+      Object serverConnection = F_MINECRAFT_SERVER__SERVER_CONNECTION.get(minecraftServer);
+      List<?> futures = (List<?>) F_SERVER_CONNECTION__CHANNEL_FUTURES.get(serverConnection);
+
+      for (Object item : futures) {
+        ChannelFuture future = (ChannelFuture) item;
+        Channel channel = future.channel();
+
+        ChannelInboundHandlerAdapter handler = attachInitializationListener(channel, futures, newChannel -> {
+          interceptor.accept(this.attachInterceptor(newChannel));
+        });
+
+        this.channelHandlers.put(channel, handler);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Detaches all initialization listeners which got previously attached
+   * by using {@link #attachInitializationListeners}
+   */
+  private void detachInitializationListeners() {
+    Iterator<Map.Entry<Channel, ChannelInboundHandlerAdapter>> it = this.channelHandlers.entrySet().iterator();
+
+    while (it.hasNext()) {
+      Map.Entry<Channel, ChannelInboundHandlerAdapter> entry = it.next();
+      entry.getKey().pipeline().remove(entry.getValue());
+      it.remove();
+    }
+  }
+
+  /**
+   * Calls {@link Interceptor#detach} on all interceptors previously added
+   * by using {@link #attachInterceptor}
+   */
+  private void detachInterceptors() {
+    Iterator<Interceptor> it = this.interceptors.iterator();
+
+    while (it.hasNext()) {
+      it.next().detach();
+      it.remove();
+    }
+  }
+
+  /**
+   * Tries to extract the sender name (GameProfile's Player-Name) from a LoginInPacket
+   * @param packet Packet to extract from
+   * @return Player-Name on success, null if not a LoginInPacket
+   */
+  private @Nullable String extractSenderNameFromPacket(Object packet) throws Exception {
+    if (!C_PACKET_LOGIN.isInstance(packet))
+      return null;
+
+    if (F_PACKET_LOGIN__GAME_PROFILE != null)
+      return ((GameProfile) F_PACKET_LOGIN__GAME_PROFILE.get(packet)).getName();
+
+    assert F_PACKET_LOGIN__NAME != null;
+    return (String) F_PACKET_LOGIN__NAME.get(packet);
+  }
+
+  /**
+   * Attaches an interceptor on a specific channel with the provided handler name
+   * @param channel Channel to attach an interceptor to
+   * @return The attached interceptor instance
+   */
+  private Interceptor attachInterceptor(Channel channel) {
+    Interceptor interceptor = new Interceptor(channel, this::extractSenderNameFromPacket);
+
+    interceptor.attach(handlerName);
+    interceptors.add(interceptor);
+    return interceptor;
+  }
+
+  /**
+   * Get the channel of a player's network manager
+   * @param p Target player to get the channel of
+   * @return Channel on success, null on internal errors
+   */
+  private @Nullable Channel getPlayersChannel(Player p) {
+    try {
+      Object playerHandle = M_CRAFT_PLAYER__HANDLE.invoke(p);
+      Object playerConnection = F_ENTITY_PLAYER__PLAYER_CONNECTION.get(playerHandle);
+      Object networkManager = F_PLAYER_CONNECTION__NETWORK_MANAGER.get(playerConnection);
+      return (Channel) F_NETWORK_MANAGER__CHANNEL.get(networkManager);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return null;
+    }
+  }
+
+  /**
+   * Set up interception to capture all currently online players as well
+   * as all new incoming channel connections
+   * @param interceptor Consumer of internally created interception instances
+   */
+  public void setupInterception(Consumer<Interceptor> interceptor) {
+    attachInitializationListeners(interceptor);
+
+    // Attach on all currently online players for convenience while developing and reloading
+    for (Player p : Bukkit.getOnlinePlayers()) {
+      Channel c = getPlayersChannel(p);
+
+      if (c != null)
+        interceptor.accept(attachInterceptor(c));
+    }
+  }
+
+  /**
+   * Clean up all interception modifications to get back into a vanilla state
+   */
+  public void cleanupInterception() {
+    detachInitializationListeners();
+    detachInterceptors();
+  }
+}
