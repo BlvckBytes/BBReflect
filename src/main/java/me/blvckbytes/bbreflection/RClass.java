@@ -13,6 +13,30 @@ public enum RClass {
     "net.minecraft.server.MinecraftServer",
     "net.minecraft.server.{v}.MinecraftServer"
   ),
+  SCOREBOARD_SERVER(
+    "net.minecraft.server.ScoreboardServer",
+    "net.minecraft.server.{v}.ScoreboardServer"
+  ),
+  SCOREBOARD_TEAM(
+    "net.minecraft.world.score.ScoreboardTeam",
+    "net.minecraft.server.{v}.ScoreboardTeam"
+  ),
+  SCOREBOARD(
+    "net.minecraft.world.score.Scoreboard",
+    "net.minecraft.server.{v}.Scoreboard"
+  ),
+  CRAFT_TEAM(
+    "org.bukkit.craftbukkit.{v}.scoreboard.CraftTeam",
+    "org.bukkit.craftbukkit.{v}.scoreboard.CraftTeam"
+  ),
+  CRAFT_SCOREBOARD(
+    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboard",
+    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboard"
+  ),
+  CRAFT_SCOREBOARD_MANAGER(
+    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboardManager",
+    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboardManager"
+  ),
   PACKET(
     "net.minecraft.network.protocol.Packet",
     "net.minecraft.server.{v}.Packet"
@@ -129,6 +153,10 @@ public enum RClass {
     "net.minecraft.network.protocol.game.PacketPlayOutKeepAlive",
     "net.minecraft.server.{v}.PacketPlayOutKeepAlive"
   ),
+  PACKET_O_SCOREBOARD_TEAM(
+    "net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeam",
+    "net.minecraft.server.{v}.PacketPlayOutScoreboardTeam"
+  ),
   ENUM_TITLE_ACTION(
     "",
     "net.minecraft.server.{v}.PacketPlayOutTitle$EnumTitleAction"
@@ -176,6 +204,10 @@ public enum RClass {
   TILE_ENTITY_FURNACE(
     "net.minecraft.world.level.block.entity.TileEntityFurnace",
     "net.minecraft.server.{v}.TileEntityFurnace"
+  ),
+  NBT_READ_LIMITER(
+    "net.minecraft.nbt.NBTReadLimiter",
+    "net.minecraft.server.{v}.NBTReadLimiter"
   ),
   NBT_TAG_LIST(
     "net.minecraft.nbt.NBTTagList",
