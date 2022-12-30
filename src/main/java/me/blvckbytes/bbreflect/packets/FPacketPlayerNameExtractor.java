@@ -1,4 +1,4 @@
-package me.blvckbytes.bbreflection.packets;
+package me.blvckbytes.bbreflect.packets;
 
 import org.jetbrains.annotations.Nullable;
 

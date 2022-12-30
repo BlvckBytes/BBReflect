@@ -1,4 +1,4 @@
-package me.blvckbytes.bbreflection;
+package me.blvckbytes.bbreflect;
 
 import lombok.Getter;
 import org.bukkit.Material;

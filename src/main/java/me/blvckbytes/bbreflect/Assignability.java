@@ -1,4 +1,4 @@
-package me.blvckbytes.bbreflection;
+package me.blvckbytes.bbreflect;
 
 public enum Assignability {
 

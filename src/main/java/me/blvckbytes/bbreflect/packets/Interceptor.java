@@ -1,4 +1,4 @@
-package me.blvckbytes.bbreflection.packets;
+package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
 import lombok.Setter;

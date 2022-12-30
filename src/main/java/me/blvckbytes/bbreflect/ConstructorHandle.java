@@ -1,4 +1,4 @@
-package me.blvckbytes.bbreflection;
+package me.blvckbytes.bbreflect;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

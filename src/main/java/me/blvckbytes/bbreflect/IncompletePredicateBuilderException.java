@@ -1,3 +1,3 @@
-package me.blvckbytes.bbreflection;
+package me.blvckbytes.bbreflect;
 
 public class IncompletePredicateBuilderException extends RuntimeException {}

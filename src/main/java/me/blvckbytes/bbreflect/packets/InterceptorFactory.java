@@ -1,8 +1,8 @@
-package me.blvckbytes.bbreflection.packets;
+package me.blvckbytes.bbreflect.packets;
 
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.*;
-import me.blvckbytes.bbreflection.*;
+import me.blvckbytes.bbreflect.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
