@@ -38,7 +38,7 @@ public class EnumHandle extends ClassHandle {
     try {
       return e.get(ordinal);
     } catch (Exception e) {
-      throw new EnumConstantNotPresentException((Class<? extends Enum<?>>) c, "ordinal=" + ordinal);
+      throw new EnumConstantNotPresentException((Class<? extends Enum<?>>) handle, "ordinal=" + ordinal);
     }
   }
 

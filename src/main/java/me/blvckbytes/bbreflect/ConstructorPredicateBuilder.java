@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHandle> {
 
@@ -61,7 +62,7 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
    */
   public ConstructorPredicateBuilder withParameters(ClassHandle... types) {
     for (ClassHandle t : types)
-      withParameter(t.get(), false, Assignability.NONE);
+      withParameter(t.getHandle(), false, Assignability.NONE);
     return this;
   }
 
@@ -72,7 +73,7 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public ConstructorPredicateBuilder withParameter(ClassHandle generic, boolean allowBoxing, Assignability assignability) {
-    return withParameter(generic.get(), allowBoxing, assignability);
+    return withParameter(generic.getHandle(), allowBoxing, assignability);
   }
 
   ////////////////////////////////// Retrieval //////////////////////////////////
@@ -93,20 +94,20 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
   }
 
   @Override
-  public ConstructorHandle required() throws Exception {
-    return new ConstructorHandle(targetClass.get(), c -> {
+  public ConstructorHandle required() throws NoSuchElementException {
+    return new ConstructorHandle(targetClass.getHandle(), (member, count) -> {
 
       // Public modifier mismatch
-      if (isPublic != null && Modifier.isPublic(c.getModifiers()) != isPublic)
+      if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
         return false;
 
       // Not exactly as many parameters as requested
       int numParameters = parameterTypes.size();
-      if (c.getParameterCount() != numParameters)
+      if (member.getParameterCount() != numParameters)
         return false;
 
       // Check parameters, if applicable
-      Class<?>[] parameters = c.getParameterTypes();
+      Class<?>[] parameters = member.getParameterTypes();
 
       // Parameters need to match in sequence
       for (int i = 0; i < numParameters; i++) {

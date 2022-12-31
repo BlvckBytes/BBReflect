@@ -3,6 +3,7 @@ package me.blvckbytes.bbreflect;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
+import java.util.NoSuchElementException;
 
 public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle> {
 
@@ -68,8 +69,8 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle> {
   }
 
   @Override
-  public ClassHandle required() throws Exception {
-    return new ClassHandle(targetClass.get(), (c, mc) -> {
+  public ClassHandle required() throws NoSuchElementException {
+    return new ClassHandle(targetClass.getHandle(), (c, mc) -> {
 
       // Static modifier mismatch
       if (isStatic != null && Modifier.isStatic(c.getModifiers()) != isStatic)

@@ -1,6 +1,6 @@
 package me.blvckbytes.bbreflect;
 
-public enum WalkIterationDecision {
+public enum HierarchyWalkDecision {
   CONTINUE,
   BREAK,
   SKIP

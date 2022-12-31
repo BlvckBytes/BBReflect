@@ -7,6 +7,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
 
@@ -87,7 +88,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
    * @param type Method return type, null means wildcard
    */
   public MethodPredicateBuilder withReturnType(@Nullable ClassHandle type) {
-    return withReturnType(type == null ? null : type.get());
+    return withReturnType(type == null ? null : type.getHandle());
   }
 
   /**
@@ -113,7 +114,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public MethodPredicateBuilder withReturnType(@Nullable ClassHandle type, boolean allowBoxing, Assignability assignability) {
-    return withReturnType(type == null ? null : type.get(), allowBoxing, assignability);
+    return withReturnType(type == null ? null : type.getHandle(), allowBoxing, assignability);
   }
 
   ////////////////////////////////// Generics ///////////////////////////////////
@@ -142,7 +143,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
    * @param generic Generic type to be present
    */
   public MethodPredicateBuilder withReturnGeneric(ClassHandle generic) {
-    return withReturnGeneric(generic.get());
+    return withReturnGeneric(generic.getHandle());
   }
 
   /**
@@ -152,7 +153,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public MethodPredicateBuilder withReturnGeneric(ClassHandle generic, boolean allowBoxing, Assignability assignability) {
-    return withReturnGeneric(generic.get(), allowBoxing, assignability);
+    return withReturnGeneric(generic.getHandle(), allowBoxing, assignability);
   }
 
   ///////////////////////////////// Parameters //////////////////////////////////
@@ -184,7 +185,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
    */
   public MethodPredicateBuilder withParameters(ClassHandle... types) {
     for (ClassHandle t : types)
-      withParameter(t.get(), false, Assignability.NONE);
+      withParameter(t.getHandle(), false, Assignability.NONE);
     return this;
   }
 
@@ -195,7 +196,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public MethodPredicateBuilder withParameter(ClassHandle generic, boolean allowBoxing, Assignability assignability) {
-    return withParameter(generic.get(), allowBoxing, assignability);
+    return withParameter(generic.getHandle(), allowBoxing, assignability);
   }
 
   ////////////////////////////////// Superclass /////////////////////////////////
@@ -227,41 +228,41 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
   }
 
   @Override
-  public MethodHandle required() throws Exception {
+  public MethodHandle required() throws NoSuchElementException {
     // At least a name , a return type or parameter types are required
     if (name == null && returnType == null && parameterTypes.size() == 0)
       throw new IncompletePredicateBuilderException();
 
-    return new MethodHandle(targetClass.get(), m -> {
+    return new MethodHandle(targetClass.getHandle(), (member, count) -> {
 
       // Is inside of another class but superclass walking is disabled
-      if (!allowSuperclass && m.getDeclaringClass() != targetClass.get())
+      if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
         return false;
 
       // Static modifier mismatch
-      if (isStatic != null && Modifier.isStatic(m.getModifiers()) != isStatic)
+      if (isStatic != null && Modifier.isStatic(member.getModifiers()) != isStatic)
         return false;
 
       // Abstract modifier mismatch
-      if (isAbstract != null && Modifier.isAbstract(m.getModifiers()) != isAbstract)
+      if (isAbstract != null && Modifier.isAbstract(member.getModifiers()) != isAbstract)
         return false;
 
       // Public modifier mismatch
-      if (isPublic != null && Modifier.isPublic(m.getModifiers()) != isPublic)
+      if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
         return false;
 
       // Name mismatch
-      if (name != null && !m.getName().equalsIgnoreCase(name))
+      if (name != null && !member.getName().equalsIgnoreCase(name))
         return false;
 
       // Return type mismatch
-      if (returnType != null && !returnType.matches(m.getReturnType()))
+      if (returnType != null && !returnType.matches(member.getReturnType()))
         return false;
 
       // Check parameters, if applicable
       int numParameters = parameterTypes.size();
       if (numParameters > 0) {
-        Class<?>[] parameters = m.getParameterTypes();
+        Class<?>[] parameters = member.getParameterTypes();
 
         // Not exactly as many parameters as requested
         if (numParameters != parameters.length)
@@ -277,7 +278,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
       // Check generic return parameters, if applicable
       int numGenerics = returnGenerics.size();
       if (numGenerics > 0) {
-        Type[] types = ((ParameterizedType) m.getGenericReturnType()).getActualTypeArguments();
+        Type[] types = ((ParameterizedType) member.getGenericReturnType()).getActualTypeArguments();
 
         // Not enough generic type parameters available
         if (types.length < numGenerics)

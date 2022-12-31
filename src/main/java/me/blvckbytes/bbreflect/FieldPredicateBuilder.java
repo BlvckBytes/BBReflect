@@ -7,6 +7,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
 
@@ -77,7 +78,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
    * @param type Field type, null means wildcard
    */
   public FieldPredicateBuilder withType(@Nullable ClassHandle type) {
-    return withType(type == null ? null : type.get());
+    return withType(type == null ? null : type.getHandle());
   }
 
   /**
@@ -103,7 +104,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public FieldPredicateBuilder withType(@Nullable ClassHandle type, boolean allowBoxing, Assignability assignability) {
-    return withType(type == null ? null : type.get(), allowBoxing, assignability);
+    return withType(type == null ? null : type.getHandle(), allowBoxing, assignability);
   }
 
   ////////////////////////////////// Generics ///////////////////////////////////
@@ -132,7 +133,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
    * @param generic Generic type to be present
    */
   public FieldPredicateBuilder withGeneric(ClassHandle generic) {
-    return withGeneric(generic.get());
+    return withGeneric(generic.getHandle());
   }
 
   /**
@@ -142,7 +143,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public FieldPredicateBuilder withGeneric(ClassHandle generic, boolean allowBoxing, Assignability assignability) {
-    return withGeneric(generic.get(), allowBoxing, assignability);
+    return withGeneric(generic.getHandle(), allowBoxing, assignability);
   }
 
   ////////////////////////////////// Superclass /////////////////////////////////
@@ -185,37 +186,37 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
   }
 
   @Override
-  public FieldHandle required() throws Exception {
+  public FieldHandle required() throws NoSuchElementException {
     // At least a name or a type are required
     if (name == null && type == null)
       throw new IncompletePredicateBuilderException();
 
-    return new FieldHandle(targetClass.get(), (f, mc) -> {
+    return new FieldHandle(targetClass.getHandle(), (member, counter) -> {
 
       // Is inside of another class but superclass walking is disabled
-      if (!allowSuperclass && f.getDeclaringClass() != targetClass.get())
+      if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
         return false;
 
       // Static modifier mismatch
-      if (isStatic != null && Modifier.isStatic(f.getModifiers()) != isStatic)
+      if (isStatic != null && Modifier.isStatic(member.getModifiers()) != isStatic)
         return false;
 
       // Public modifier mismatch
-      if (isPublic != null && Modifier.isPublic(f.getModifiers()) != isPublic)
+      if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
         return false;
 
       // Name mismatch
-      if (name != null && !f.getName().equalsIgnoreCase(name))
+      if (name != null && !member.getName().equalsIgnoreCase(name))
         return false;
 
       // Type mismatch
-      if (type != null && !type.matches(f.getType()))
+      if (type != null && !type.matches(member.getType()))
         return false;
 
       // Check generic parameters, if applicable
       int numGenerics = genericTypes.size();
       if (numGenerics > 0) {
-        Type genericType = f.getGenericType();
+        Type genericType = member.getGenericType();
 
         // Not a generic type (<...>)
         if (!(genericType instanceof ParameterizedType))
@@ -235,7 +236,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
       }
 
       // Everything matches, while skip > matchCounter, count up
-      if (skip > mc)
+      if (skip > counter)
         return null;
 
       return true;
