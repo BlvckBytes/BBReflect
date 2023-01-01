@@ -173,18 +173,12 @@ public class InterceptorFactory implements IPacketOperator {
   /**
    * Calls {@link Interceptor#detach} on all interceptors previously added
    * by using {@link #attachInterceptor}
-   * @param closedOnly Only detach and remove interceptors who's channel is closed
    */
-  private void detachInterceptors(boolean closedOnly) {
+  private void detachInterceptors() {
     Iterator<Interceptor> it = this.interceptors.iterator();
 
     while (it.hasNext()) {
-      Interceptor interceptor = it.next();
-
-      if (closedOnly && interceptor.isOpen())
-        continue;
-
-      interceptor.detach();
+      it.next().detach();
       it.remove();
     }
   }
@@ -200,6 +194,12 @@ public class InterceptorFactory implements IPacketOperator {
 
     interceptor.attach(handlerName);
     interceptors.add(interceptor);
+
+    // Detach and remove when this channel has been closed
+    channel.closeFuture().addListener(future -> {
+      interceptor.detach();
+      interceptors.remove(interceptor);
+    });
 
     return interceptor;
   }
@@ -247,14 +247,7 @@ public class InterceptorFactory implements IPacketOperator {
    */
   public void cleanupInterception() {
     detachInitializationListeners();
-    detachInterceptors(false);
-  }
-
-  /**
-   * Frees interceptors which hold a closed or garbage collected channel instance
-   */
-  public void cleanupClosedInterceptors() {
-    detachInterceptors(true);
+    detachInterceptors();
   }
 
   /**
