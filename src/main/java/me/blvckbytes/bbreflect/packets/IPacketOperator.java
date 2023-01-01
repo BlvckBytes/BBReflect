@@ -6,10 +6,11 @@ public interface IPacketOperator {
 
   /**
    * Used to extract the player-name from a LoginIn-Packet
+   * @param requester The interceptor which requested to extract a name
    * @param packet Any packet, maybe a LoginIn-Packet
    * @return Name on success, null otherwise
    */
-  @Nullable String tryExtractName(Object packet) throws Exception;
+  @Nullable String tryExtractName(Interceptor requester, Object packet) throws Exception;
 
   /**
    * Used to send a packet using a network manager instance

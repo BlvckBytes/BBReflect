@@ -25,11 +25,25 @@ public class Interceptor extends ChannelDuplexHandler {
   /**
    * Create a new packet interceptor on top of a network channel
    * @param channel Underlying network channel to intercept data on
+   * @param playerName Name of the player, if it's already known at the time of instantiation
    * @param operator External packet operator which does all reflective access
    */
-  public Interceptor(Channel channel, IPacketOperator operator) {
+  public Interceptor(Channel channel, @Nullable String playerName, IPacketOperator operator) {
+    this.playerName = playerName;
     this.channel = new WeakReference<>(channel);
     this.operator = operator;
+  }
+
+  /**
+   * Checks whether the underlying channel is open
+   */
+  public boolean isOpen() {
+    Channel ch = channel.get();
+
+    if (ch == null)
+      return false;
+
+    return ch.isOpen();
   }
 
   @Override
@@ -38,7 +52,7 @@ public class Interceptor extends ChannelDuplexHandler {
 
     // Try to extract the name and update the local reference, if applicable
     try {
-      String extractedName = operator.tryExtractName(o);
+      String extractedName = operator.tryExtractName(this, o);
       if (extractedName != null)
         playerName = extractedName;
     } catch (Exception e) {

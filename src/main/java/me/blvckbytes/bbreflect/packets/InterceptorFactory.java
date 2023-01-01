@@ -28,12 +28,14 @@ public class InterceptorFactory implements IPacketOperator {
     F_NETWORK_MANAGER__CHANNEL;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
+  private final WeakHashMap<String, Interceptor> interceptorByPlayerName;
   private final List<Interceptor> interceptors;
 
   public InterceptorFactory(ReflectionHelper helper, String handlerName) throws Exception {
     this.handlerName = handlerName;
     this.interceptors = new ArrayList<>();
     this.channelHandlers = new HashMap<>();
+    this.interceptorByPlayerName = new WeakHashMap<>();
 
     ClassHandle C_CRAFT_PLAYER = helper.getClass(RClass.CRAFT_PLAYER);
     ClassHandle C_ENTITY_PLAYER = helper.getClass(RClass.ENTITY_PLAYER);
@@ -71,7 +73,7 @@ public class InterceptorFactory implements IPacketOperator {
     // NetworkManager -> Channel
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField().withType(Channel.class).required();
 
-    // NetworkManager#sendPacket(Packet<?>, GenericFutureListener<?>)
+    // public NetworkManager#sendPacket(Packet<?>, GenericFutureListener<?>)
     M_NETWORK_MANAGER__SEND_PACKET = C_NETWORK_MANAGER.locateMethod()
       .withPublic(true)
       .withParameter(C_PACKET)
@@ -138,7 +140,7 @@ public class InterceptorFactory implements IPacketOperator {
         Channel channel = future.channel();
 
         ChannelInboundHandlerAdapter handler = attachInitializationListener(channel, futures, newChannel -> {
-          interceptor.accept(this.attachInterceptor(newChannel));
+          interceptor.accept(this.attachInterceptor(newChannel, null));
         });
 
         this.channelHandlers.put(channel, handler);
@@ -171,12 +173,18 @@ public class InterceptorFactory implements IPacketOperator {
   /**
    * Calls {@link Interceptor#detach} on all interceptors previously added
    * by using {@link #attachInterceptor}
+   * @param closedOnly Only detach and remove interceptors who's channel is closed
    */
-  private void detachInterceptors() {
+  private void detachInterceptors(boolean closedOnly) {
     Iterator<Interceptor> it = this.interceptors.iterator();
 
     while (it.hasNext()) {
-      it.next().detach();
+      Interceptor interceptor = it.next();
+
+      if (closedOnly && interceptor.isOpen())
+        continue;
+
+      interceptor.detach();
       it.remove();
     }
   }
@@ -184,13 +192,15 @@ public class InterceptorFactory implements IPacketOperator {
   /**
    * Attaches an interceptor on a specific channel with the provided handler name
    * @param channel Channel to attach an interceptor to
+   * @param playerName Name of the player, if it's already known at the time of instantiation
    * @return The attached interceptor instance
    */
-  private Interceptor attachInterceptor(Channel channel) {
-    Interceptor interceptor = new Interceptor(channel, this);
+  private Interceptor attachInterceptor(Channel channel, @Nullable String playerName) {
+    Interceptor interceptor = new Interceptor(channel, playerName, this);
 
     interceptor.attach(handlerName);
     interceptors.add(interceptor);
+
     return interceptor;
   }
 
@@ -223,8 +233,12 @@ public class InterceptorFactory implements IPacketOperator {
     for (Player p : Bukkit.getOnlinePlayers()) {
       Channel c = getPlayersChannel(p);
 
-      if (c != null)
-        interceptor.accept(attachInterceptor(c));
+      if (c != null) {
+        String playerName = p.getName();
+        Interceptor inst = attachInterceptor(c, playerName);
+        interceptorByPlayerName.put(playerName, inst);
+        interceptor.accept(inst);
+      }
     }
   }
 
@@ -233,7 +247,23 @@ public class InterceptorFactory implements IPacketOperator {
    */
   public void cleanupInterception() {
     detachInitializationListeners();
-    detachInterceptors();
+    detachInterceptors(false);
+  }
+
+  /**
+   * Frees interceptors which hold a closed or garbage collected channel instance
+   */
+  public void cleanupClosedInterceptors() {
+    detachInterceptors(true);
+  }
+
+  /**
+   * Get a player's corresponding interceptor instance
+   * @param p Target player
+   * @return Interceptor reference on success, null if this player is not injected
+   */
+  public @Nullable Interceptor getPlayerInterceptor(Player p) {
+    return interceptorByPlayerName.get(p.getName());
   }
 
   //=========================================================================//
@@ -241,15 +271,24 @@ public class InterceptorFactory implements IPacketOperator {
   //=========================================================================//
 
   @Override
-  public @Nullable String tryExtractName(Object packet) throws Exception {
+  public @Nullable String tryExtractName(Interceptor requester, Object packet) throws Exception {
     if (!C_PACKET_LOGIN.isInstance(packet))
       return null;
 
-    if (F_PACKET_LOGIN__GAME_PROFILE != null)
-      return ((GameProfile) F_PACKET_LOGIN__GAME_PROFILE.get(packet)).getName();
+    String name;
 
-    assert F_PACKET_LOGIN__NAME != null;
-    return (String) F_PACKET_LOGIN__NAME.get(packet);
+    if (F_PACKET_LOGIN__GAME_PROFILE != null)
+      name = ((GameProfile) F_PACKET_LOGIN__GAME_PROFILE.get(packet)).getName();
+
+    else {
+      assert F_PACKET_LOGIN__NAME != null;
+      name = (String) F_PACKET_LOGIN__NAME.get(packet);
+    }
+
+    if (name != null && !name.isBlank())
+      interceptorByPlayerName.put(name, requester);
+
+    return name;
   }
 
   @Override
