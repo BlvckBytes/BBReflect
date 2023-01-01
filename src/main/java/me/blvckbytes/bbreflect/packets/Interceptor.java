@@ -34,18 +34,6 @@ public class Interceptor extends ChannelDuplexHandler {
     this.operator = operator;
   }
 
-  /**
-   * Checks whether the underlying channel is open
-   */
-  public boolean isOpen() {
-    Channel ch = channel.get();
-
-    if (ch == null)
-      return false;
-
-    return ch.isOpen();
-  }
-
   @Override
   public void channelRead(ChannelHandlerContext channelHandlerContext, Object o) throws Exception {
     Channel ch = channel.get();
