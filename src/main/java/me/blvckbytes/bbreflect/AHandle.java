@@ -13,15 +13,21 @@ import java.util.function.BiFunction;
 @Getter
 public abstract class AHandle<T> {
 
-  // TODO: Structure this class through the help of separator comments
-
   protected final T handle;
   protected final Class<T> handleType;
 
+  /**
+   * Create a new handle by running a member predicate on a target class' members
+   * @param target Target class
+   * @param memberType Target member type
+   * @param predicate Member predicate to run
+   * @throws NoSuchElementException Member predicate found no matches
+   */
   protected AHandle(Class<?> target, Class<T> memberType, FMemberPredicate<T> predicate) throws NoSuchElementException {
     if (target == null)
       throw new IllegalStateException("Target has to be present");
 
+    // Execute the predicate on all members of target type within the whole target class hierarchy
     T result = walkClassHierarchyFor(memberType, target, (member, counter) -> {
       Boolean predicateResponse = predicate.matches(member, counter);
       if (predicateResponse == null)
@@ -33,6 +39,7 @@ public abstract class AHandle<T> {
     if (result == null) {
       StringBuilder message = new StringBuilder("Could not satisfy the member predicate\nAvailable members:\n");
 
+      // Print all available members by walking the hierarchy again
       walkClassHierarchyFor(memberType, target, (member, counter) -> {
         message.append('-').append(stringify(member)).append('\n');
         return HierarchyWalkDecision.CONTINUE;
@@ -48,10 +55,25 @@ public abstract class AHandle<T> {
     this.handleType = memberType;
   }
 
+  /**
+   * Construct a new handle using an immediate value
+   * @param handle Immediate value
+   * @param type Type of handle
+   */
   protected AHandle(T handle, Class<T> type) {
     this.handle = handle;
     this.handleType = type;
   }
+
+  /**
+   * Used to print a member in a human readable format with all available information displayed
+   * @param member Member to stringify
+   */
+  protected abstract String stringify(T member);
+
+  //=========================================================================//
+  //                             Object Overrides                            //
+  //=========================================================================//
 
   @Override
   public boolean equals(Object obj) {
@@ -71,9 +93,11 @@ public abstract class AHandle<T> {
     return stringify(handle);
   }
 
-  protected abstract String stringify(T member);
+  //=========================================================================//
+  //                                 Helpers                                 //
+  //=========================================================================//
 
-  protected <T> @Nullable T walkClassHierarchyFor(Class<T> member, Class<?> base, BiFunction<T, Integer, HierarchyWalkDecision> decider) {
+  protected @Nullable T walkClassHierarchyFor(Class<T> member, Class<?> base, BiFunction<T, Integer, HierarchyWalkDecision> decider) {
     int matchCounter = 0;
     T res = null;
 
@@ -106,7 +130,7 @@ public abstract class AHandle<T> {
   }
 
   @SuppressWarnings("unchecked")
-  private <T> T[] getAllEntriesOf(Class<T> member, Class<?> from) {
+  private T[] getAllEntriesOf(Class<T> member, Class<?> from) {
     if (member == Field.class)
       return (T[]) from.getDeclaredFields();
 
