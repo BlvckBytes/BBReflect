@@ -180,6 +180,15 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
   }
 
   /**
+   * Add another parameter type of the target method to the sequence
+   * @param type Type to be present
+   */
+  public MethodPredicateBuilder withParameter(Class<?> type) {
+    this.parameterTypes.add(new ComparableType(type, false, Assignability.NONE));
+    return this;
+  }
+
+  /**
    * Add more parameter types of the target method to the sequence
    * @param types Types to be present
    */
@@ -191,12 +200,21 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
 
   /**
    * Add another parameter type of the target method to the sequence
-   * @param generic Type to be present
+   * @param type Type to be present
    * @param allowBoxing Whether boxed and unboxed versions of the type are equivalent
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
-  public MethodPredicateBuilder withParameter(ClassHandle generic, boolean allowBoxing, Assignability assignability) {
-    return withParameter(generic.getHandle(), allowBoxing, assignability);
+  public MethodPredicateBuilder withParameter(ClassHandle type, boolean allowBoxing, Assignability assignability) {
+    return withParameter(type.getHandle(), allowBoxing, assignability);
+  }
+
+  /**
+   * Add another parameter type of the target method to the sequence
+   * @param type Type to be present
+   */
+  public MethodPredicateBuilder withParameter(ClassHandle type) {
+    this.parameterTypes.add(new ComparableType(type.getHandle(), false, Assignability.NONE));
+    return this;
   }
 
   ////////////////////////////////// Superclass /////////////////////////////////

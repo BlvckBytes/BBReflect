@@ -2,6 +2,8 @@ package me.blvckbytes.bbreflect.packets;
 
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.*;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import me.blvckbytes.bbreflect.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -12,15 +14,18 @@ import java.util.function.Consumer;
 
 import static org.bukkit.Bukkit.getServer;
 
-public class InterceptorFactory {
+public class InterceptorFactory implements IPacketOperator {
 
   private final String handlerName;
 
   private final ClassHandle C_PACKET_LOGIN;
-  private final MethodHandle M_CRAFT_PLAYER__HANDLE;
+  private final MethodHandle M_CRAFT_PLAYER__HANDLE, M_NETWORK_MANAGER__SEND_PACKET;
   private final @Nullable FieldHandle F_PACKET_LOGIN__GAME_PROFILE;
   private @Nullable FieldHandle F_PACKET_LOGIN__NAME;
-  private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION, F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER, F_NETWORK_MANAGER__CHANNEL;
+
+  private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION,
+    F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER,
+    F_NETWORK_MANAGER__CHANNEL;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
   private final List<Interceptor> interceptors;
@@ -37,6 +42,7 @@ public class InterceptorFactory {
     ClassHandle C_CRAFT_SERVER = helper.getClass(RClass.CRAFT_SERVER);
     ClassHandle C_MINECRAFT_SERVER = helper.getClass(RClass.MINECRAFT_SERVER);
     ClassHandle C_SERVER_CONNECTION = helper.getClass(RClass.SERVER_CONNECTION);
+    ClassHandle C_PACKET = helper.getClass(RClass.PACKET);
 
     C_PACKET_LOGIN = helper.getClass(RClass.PACKET_I_LOGIN);
 
@@ -64,6 +70,13 @@ public class InterceptorFactory {
 
     // NetworkManager -> Channel
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField().withType(Channel.class).required();
+
+    // NetworkManager#sendPacket(Packet<?>, GenericFutureListener<?>)
+    M_NETWORK_MANAGER__SEND_PACKET = C_NETWORK_MANAGER.locateMethod()
+      .withPublic(true)
+      .withParameter(C_PACKET)
+      .withParameter(GenericFutureListener.class)
+      .required();
   }
 
   /**
@@ -87,7 +100,7 @@ public class InterceptorFactory {
 
             // Add this initializer as the first item in the channel to be the
             // first receiver which gets a hold of it
-            channel.pipeline().addLast(new ChannelInitializer<>() {
+            channel.pipeline().addFirst(new ChannelInitializer<>() {
 
               @Override
               protected void initChannel(Channel channel) {
@@ -144,8 +157,14 @@ public class InterceptorFactory {
 
     while (it.hasNext()) {
       Map.Entry<Channel, ChannelInboundHandlerAdapter> entry = it.next();
-      entry.getKey().pipeline().remove(entry.getValue());
       it.remove();
+
+      Channel channel = entry.getKey();
+
+      if (!channel.isOpen())
+        continue;
+
+      channel.pipeline().remove(entry.getValue());
     }
   }
 
@@ -163,28 +182,12 @@ public class InterceptorFactory {
   }
 
   /**
-   * Tries to extract the sender name (GameProfile's Player-Name) from a LoginInPacket
-   * @param packet Packet to extract from
-   * @return Player-Name on success, null if not a LoginInPacket
-   */
-  private @Nullable String extractSenderNameFromPacket(Object packet) throws Exception {
-    if (!C_PACKET_LOGIN.isInstance(packet))
-      return null;
-
-    if (F_PACKET_LOGIN__GAME_PROFILE != null)
-      return ((GameProfile) F_PACKET_LOGIN__GAME_PROFILE.get(packet)).getName();
-
-    assert F_PACKET_LOGIN__NAME != null;
-    return (String) F_PACKET_LOGIN__NAME.get(packet);
-  }
-
-  /**
    * Attaches an interceptor on a specific channel with the provided handler name
    * @param channel Channel to attach an interceptor to
    * @return The attached interceptor instance
    */
   private Interceptor attachInterceptor(Channel channel) {
-    Interceptor interceptor = new Interceptor(channel, this::extractSenderNameFromPacket);
+    Interceptor interceptor = new Interceptor(channel, this);
 
     interceptor.attach(handlerName);
     interceptors.add(interceptor);
@@ -231,5 +234,31 @@ public class InterceptorFactory {
   public void cleanupInterception() {
     detachInitializationListeners();
     detachInterceptors();
+  }
+
+  //=========================================================================//
+  //                              IPacketOperator                            //
+  //=========================================================================//
+
+  @Override
+  public @Nullable String tryExtractName(Object packet) throws Exception {
+    if (!C_PACKET_LOGIN.isInstance(packet))
+      return null;
+
+    if (F_PACKET_LOGIN__GAME_PROFILE != null)
+      return ((GameProfile) F_PACKET_LOGIN__GAME_PROFILE.get(packet)).getName();
+
+    assert F_PACKET_LOGIN__NAME != null;
+    return (String) F_PACKET_LOGIN__NAME.get(packet);
+  }
+
+  @Override
+  public void sendPacket(Object packet, @Nullable Runnable completion, Object networkManager) throws Exception {
+    GenericFutureListener<? extends Future<? super Void>> listener = null;
+
+    if (completion != null)
+      listener = f -> completion.run();
+
+    M_NETWORK_MANAGER__SEND_PACKET.invoke(networkManager, packet, listener);
   }
 }
