@@ -2,6 +2,7 @@ package me.blvckbytes.bbreflect;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import me.blvckbytes.bbreflect.version.ServerVersion;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -318,18 +319,25 @@ public enum RClass {
     cache = new HashMap<>();
   }
 
-  public ClassHandle resolve(boolean afterRefactor, String version) throws ClassNotFoundException {
+  public ClassHandle resolve(ServerVersion version) throws ClassNotFoundException {
     ClassHandle res = cache.get(this);
 
     // Respond with cache result
     if (res != null)
       return res;
 
-    // Load class and then cache
-    res = ClassHandle.of(
-      Class.forName((afterRefactor ? this.afterRefactor : this.beforeRefactor).replace("{v}", version))
-    );
+    String className;
 
+    if (version.getMinor() >= 17)
+      className = this.afterRefactor;
+    else
+      className = this.beforeRefactor;
+
+    // Substitute version placeholders
+    className = className.replace("{v}", version.toString());
+
+    // Load class and then cache it's value
+    res = ClassHandle.of(Class.forName(className));
     cache.put(this, res);
     return res;
   }

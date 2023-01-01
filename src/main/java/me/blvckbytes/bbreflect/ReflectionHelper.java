@@ -1,6 +1,8 @@
 package me.blvckbytes.bbreflect;
 
 import lombok.Getter;
+import me.blvckbytes.bbreflect.version.ServerVersion;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.jetbrains.annotations.Nullable;
 
@@ -8,8 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
-
-import static org.bukkit.Bukkit.getServer;
 
 public class ReflectionHelper {
 
@@ -19,15 +19,13 @@ public class ReflectionHelper {
 
   // Server version information
   @Getter private final String versionStr;
-  @Getter private final int[] versionNumbers;
-  @Getter private final boolean refactored;
+  @Getter private final ServerVersion version;
 
   public ReflectionHelper(@Nullable Supplier<String> versionSupplier) throws Exception {
     this.burningTimes = new HashMap<>();
 
     this.versionStr = versionSupplier == null ? findVersion() : versionSupplier.get();
-    this.versionNumbers = parseVersion(this.versionStr);
-    this.refactored = this.versionNumbers[1] >= 17;
+    this.version = parseVersion(this.versionStr);
 
     ClassHandle C_ITEM = getClass(RClass.ITEM);
     ClassHandle C_CIS = getClass(RClass.CRAFT_ITEM_STACK);
@@ -45,7 +43,7 @@ public class ReflectionHelper {
   }
 
   public ClassHandle getClass(RClass rc) throws ClassNotFoundException {
-    return rc.resolve(refactored, this.versionStr);
+    return rc.resolve(this.version);
   }
 
   public @Nullable ClassHandle getClassOptional(RClass rc) {
@@ -97,19 +95,25 @@ public class ReflectionHelper {
    * @return Version part of the package
    */
   private String findVersion() {
-    return getServer().getClass().getName().split("\\.")[3];
+    return Bukkit.getServer().getClass().getName().split("\\.")[3];
   }
 
   /**
    * Get the major, minor and revision version numbers the server's running on
    * @return [major, minor, revision]
    */
-  private int[] parseVersion(String version) {
+  private ServerVersion parseVersion(String version) {
     String[] data = version.split("_");
-    return new int[] {
+
+    ServerVersion result = ServerVersion.fromVersions(
       Integer.parseInt(data[0].substring(1)), // remove leading v
       Integer.parseInt(data[1]),
       Integer.parseInt(data[2].substring(1)) // Remove leading R
-    };
+    );
+
+    if (result == null)
+      throw new IllegalStateException("Unsupported version encountered: " + version);
+
+    return result;
   }
 }
