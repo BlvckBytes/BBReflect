@@ -274,6 +274,10 @@ public enum RClass {
     "net.minecraft.nbt.NBTBase",
     "net.minecraft.server.{v}.NBTBase"
   ),
+  ENTITY(
+    "net.minecraft.world.entity.Entity",
+    "net.minecraft.server.{v}.Entity"
+  ),
   ENTITY_HUMAN(
     "net.minecraft.world.entity.player.EntityHuman",
     "net.minecraft.server.{v}.EntityHuman"
@@ -301,6 +305,10 @@ public enum RClass {
   CRAFT_PLAYER(
     "org.bukkit.craftbukkit.{v}.entity.CraftPlayer",
     "org.bukkit.craftbukkit.{v}.entity.CraftPlayer"
+  ),
+  CRAFT_ITEM(
+    "org.bukkit.craftbukkit.{v}.entity.CraftItem",
+    "org.bukkit.craftbukkit.{v}.entity.CraftItem"
   ),
   ENUM_GAME_MODE(
     "net.minecraft.world.level.EnumGamemode",
