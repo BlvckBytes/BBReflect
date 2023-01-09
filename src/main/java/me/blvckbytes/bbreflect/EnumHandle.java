@@ -1,5 +1,6 @@
 package me.blvckbytes.bbreflect;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class EnumHandle extends ClassHandle {
@@ -24,7 +25,7 @@ public class EnumHandle extends ClassHandle {
       throw new IllegalStateException("This class does not represent an enumeration.");
 
     // Create a unmodifiable list of constants and wrap into a handle
-    e = List.of((Enum<?>[]) constants);
+    e = Arrays.asList((Enum<?>[]) constants);
   }
 
   /**

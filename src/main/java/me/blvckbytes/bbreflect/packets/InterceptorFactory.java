@@ -95,14 +95,14 @@ public class InterceptorFactory implements IPacketOperator {
 
       @Override
       public void channelRead(ChannelHandlerContext channelHandlerContext, Object o) {
-        ((Channel) o).pipeline().addFirst(new ChannelInitializer<>() {
+        ((Channel) o).pipeline().addFirst(new ChannelInitializer<Channel>() {
 
           @Override
           protected void initChannel(Channel channel) {
 
             // Add this initializer as the first item in the channel to be the
             // first receiver which gets a hold of it
-            channel.pipeline().addFirst(new ChannelInitializer<>() {
+            channel.pipeline().addFirst(new ChannelInitializer<Channel>() {
 
               @Override
               protected void initChannel(Channel channel) {
@@ -278,7 +278,7 @@ public class InterceptorFactory implements IPacketOperator {
       name = (String) F_PACKET_LOGIN__NAME.get(packet);
     }
 
-    if (name != null && !name.isBlank())
+    if (name != null && !name.isEmpty())
       interceptorByPlayerName.put(name, requester);
 
     return name;
