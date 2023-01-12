@@ -126,6 +126,14 @@ public enum RClass {
     Class.forName("net.minecraft.server.network.PlayerConnection") :
     Class.forName("net.minecraft.server." + ver + ".PlayerConnection")
   ),
+  DATA_WATCHER((ver, after) -> after ?
+    Class.forName("net.minecraft.network.syncher.DataWatcher") :
+    Class.forName("net.minecraft.server." + ver + ".DataWatcher")
+  ),
+  ENTITY_TYPES((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.EntityTypes") :
+    Class.forName("net.minecraft.server." + ver + ".EntityTypes")
+  ),
   PLAYER_LIST((ver, after) -> after ?
     Class.forName("net.minecraft.server.players.PlayerList") :
     Class.forName("net.minecraft.server." + ver + ".PlayerList")
@@ -157,6 +165,14 @@ public enum RClass {
   CHAT_COMPONENT_TEXT((ver, after) -> after ?
     Class.forName("net.minecraft.network.chat.ChatComponentText") :
     Class.forName("net.minecraft.server." + ver + ".ChatComponentText")
+  ),
+  PACKET_O_ENTITY_METADATA((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutEntityMetadata")
+  ),
+  PACKET_O_SPAWN_ENTITY((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutSpawnEntity")
   ),
   PACKET_O_OPEN_WINDOW((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutOpenWindow") :
