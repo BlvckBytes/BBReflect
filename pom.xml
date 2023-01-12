@@ -27,8 +27,14 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot</artifactId>
-            <version>1.13.2-R0.1-SNAPSHOT</version>
+            <version>1.17-R0.1-SNAPSHOT</version>
+            <classifier>remapped-mojang</classifier>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.spigotmc</groupId>-->
+<!--            <artifactId>spigot</artifactId>-->
+<!--            <version>1.13.2-R0.1-SNAPSHOT</version>-->
+<!--        </dependency>-->
     </dependencies>
 
 </project>
