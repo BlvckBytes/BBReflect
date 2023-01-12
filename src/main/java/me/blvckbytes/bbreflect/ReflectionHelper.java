@@ -8,8 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.function.Supplier;
 
 public class ReflectionHelper {
@@ -25,12 +24,12 @@ public class ReflectionHelper {
 
   private final MethodHandle M_NETWORK_MANAGER__SEND;
 
-  private final Map<Player, Object> networkManagerCache;
+  private final WeakHashMap<Player, Object> networkManagerCache;
 
   public ReflectionHelper(@Nullable Supplier<String> versionSupplier) throws Exception {
     this.versionStr = versionSupplier == null ? findVersion() : versionSupplier.get();
     this.version = parseVersion(this.versionStr);
-    this.networkManagerCache = new HashMap<>();
+    this.networkManagerCache = new WeakHashMap<>();
 
     ClassHandle C_CRAFT_PLAYER = getClass(RClass.CRAFT_PLAYER);
     ClassHandle C_ENTITY_PLAYER = getClass(RClass.ENTITY_PLAYER);
