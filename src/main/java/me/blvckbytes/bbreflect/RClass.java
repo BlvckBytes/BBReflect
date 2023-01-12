@@ -10,317 +10,309 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
-  MINECRAFT_SERVER(
-    "net.minecraft.server.MinecraftServer",
-    "net.minecraft.server.{v}.MinecraftServer"
-  ),
-  SCOREBOARD_SERVER(
-    "net.minecraft.server.ScoreboardServer",
-    "net.minecraft.server.{v}.ScoreboardServer"
-  ),
-  SCOREBOARD_TEAM(
-    "net.minecraft.world.score.ScoreboardTeam",
-    "net.minecraft.server.{v}.ScoreboardTeam"
-  ),
-  SCOREBOARD(
-    "net.minecraft.world.score.Scoreboard",
-    "net.minecraft.server.{v}.Scoreboard"
-  ),
-  CRAFT_TEAM(
-    "org.bukkit.craftbukkit.{v}.scoreboard.CraftTeam",
-    "org.bukkit.craftbukkit.{v}.scoreboard.CraftTeam"
-  ),
-  CRAFT_SCOREBOARD(
-    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboard",
-    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboard"
-  ),
-  CRAFT_SCOREBOARD_MANAGER(
-    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboardManager",
-    "org.bukkit.craftbukkit.{v}.scoreboard.CraftScoreboardManager"
-  ),
-  PACKET(
-    "net.minecraft.network.protocol.Packet",
-    "net.minecraft.server.{v}.Packet"
-  ),
-  I_CHAT_BASE_COMPONENT(
-    "net.minecraft.network.chat.IChatBaseComponent",
-    "net.minecraft.server.{v}.IChatBaseComponent"
-  ),
-  CHAT_SERIALIZER(
-    "net.minecraft.network.chat.IChatBaseComponent$ChatSerializer",
-    "net.minecraft.server.{v}.IChatBaseComponent$ChatSerializer"
-  ),
-  CHAT_MESSAGE_TYPE(
-    "net.minecraft.network.chat.ChatMessageType",
-    "net.minecraft.server.{v}.ChatMessageType"
-  ),
-  FILTERED_TEXT(
-    "net.minecraft.server.network.FilteredText",
-    ""
-  ),
-  MESSAGE_SIGNATURE(
-    "net.minecraft.network.chat.MessageSignature",
-    ""
-  ),
-  PLAYER_CHAT_MESSAGE(
-    "net.minecraft.network.chat.PlayerChatMessage",
-    ""
-  ),
-  NETWORK_MANAGER(
-    "net.minecraft.network.NetworkManager",
-    "net.minecraft.server.{v}.NetworkManager"
-  ),
-  QUEUED_PACKET(
-    "net.minecraft.network.NetworkManager$QueuedPacket",
-    "net.minecraft.server.{v}.NetworkManager$QueuedPacket"
-  ),
-  SERVER_CONNECTION(
-    "net.minecraft.server.network.ServerConnection",
-    "net.minecraft.server.{v}.ServerConnection"
-  ),
-  PLAYER_CONNECTION(
-    "net.minecraft.server.network.PlayerConnection",
-    "net.minecraft.server.{v}.PlayerConnection"
-  ),
-  PLAYER_LIST(
-    "net.minecraft.server.players.PlayerList",
-    "net.minecraft.server.{v}.PlayerList"
-  ),
-  RESOURCE_KEY(
-    "net.minecraft.resources.ResourceKey",
-    ""
-  ),
-  PACKET_DATA_SERIALIZER(
-    "net.minecraft.network.PacketDataSerializer",
-    "net.minecraft.server.{v}.PacketDataSerializer"
-  ),
-  ITEM(
-    "net.minecraft.world.item.Item",
-    "net.minecraft.server.{v}.Item"
-  ),
-  ITEM_STACK(
-    "net.minecraft.world.item.ItemStack",
-    "net.minecraft.server.{v}.ItemStack"
-  ),
-  GENERIC_ATTRIBUTES(
-    "net.minecraft.world.entity.ai.attributes.GenericAttributes",
-    "net.minecraft.server.{v}.GenericAttributes"
-  ),
-  ATTRIBUTE_BASE(
-    "net.minecraft.world.entity.ai.attributes.AttributeBase",
-    "net.minecraft.server.{v}.AttributeBase"
-  ),
-  CHAT_COMPONENT_TEXT(
-    "net.minecraft.network.chat.ChatComponentText",
-    "net.minecraft.server.{v}.ChatComponentText"
-  ),
-  PACKET_O_OPEN_WINDOW(
-    "net.minecraft.network.protocol.game.PacketPlayOutOpenWindow",
-    "net.minecraft.server.{v}.PacketPlayOutOpenWindow"
-  ),
-  PACKET_O_SET_SLOT(
-    "net.minecraft.network.protocol.game.PacketPlayOutSetSlot",
-    "net.minecraft.server.{v}.PacketPlayOutSetSlot"
-  ),
-  PACKET_O_PLAYER_INFO(
-    "net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo",
-    "net.minecraft.server.{v}.PacketPlayOutPlayerInfo"
-  ),
-  ENUM_PLAYER_INFO_ACTION(
-    "net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo$EnumPlayerInfoAction",
-    "net.minecraft.server.{v}.PacketPlayOutPlayerInfo$EnumPlayerInfoAction"
-  ),
-  PLAYER_INFO_DATA(
-    "net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo$PlayerInfoData",
-    "net.minecraft.server.{v}.PacketPlayOutPlayerInfo$PlayerInfoData"
-  ),
-  PACKET_O_CHAT(
-    "net.minecraft.network.protocol.game.PacketPlayOutChat",
-    "net.minecraft.server.{v}.PacketPlayOutChat"
-  ),
-  PACKET_O_WINDOW_DATA(
-    "net.minecraft.network.protocol.game.PacketPlayOutWindowData",
-    "net.minecraft.server.{v}.PacketPlayOutWindowData"
-  ),
-  PACKET_O_TITLE(
-    "",
-    "net.minecraft.server.{v}.PacketPlayOutTitle"
-  ),
-  PACKET_O_LOGIN(
-    "net.minecraft.network.protocol.login.PacketLoginOutSuccess",
-    "net.minecraft.server.{v}.PacketLoginOutSuccess"
-  ),
-  PACKET_O_KEEP_ALIVE(
-    "net.minecraft.network.protocol.game.PacketPlayOutKeepAlive",
-    "net.minecraft.server.{v}.PacketPlayOutKeepAlive"
-  ),
-  PACKET_O_SCOREBOARD_TEAM(
-    "net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeam",
-    "net.minecraft.server.{v}.PacketPlayOutScoreboardTeam"
-  ),
-  ENUM_TITLE_ACTION(
-    "",
-    "net.minecraft.server.{v}.PacketPlayOutTitle$EnumTitleAction"
-  ),
-  CLIENTBOUND_TITLES_ANIMATION(
-    "net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket",
-    ""
-  ),
-  CLIENTBOUND_TITLE_SET(
-    "net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket",
-    ""
-  ),
-  CLIENTBOUND_SUBTITLE_SET(
-    "net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket",
-    ""
-  ),
-  CLIENTBOUND_SYSTEM_CHAT_PACKET(
-    "net.minecraft.network.protocol.game.ClientboundSystemChatPacket",
-    ""
-  ),
-  PACKET_I_B_EDIT(
-    "net.minecraft.network.protocol.game.PacketPlayInBEdit",
-    "net.minecraft.server.{v}.PacketPlayInBEdit"
-  ),
-  PACKET_I_SET_CREATIVE_SLOT(
-    "net.minecraft.network.protocol.game.PacketPlayInSetCreativeSlot",
-    "net.minecraft.server.{v}.PacketPlayInSetCreativeSlot"
-  ),
-  PACKET_I_ITEM_NAME(
-    "net.minecraft.network.protocol.game.PacketPlayInItemName",
-    "net.minecraft.server.{v}.PacketPlayInItemName"
-  ),
-  PACKET_I_HANDSHAKE(
-    "net.minecraft.network.protocol.handshake.PacketHandshakingInSetProtocol",
-    "net.minecraft.server.{v}.PacketHandshakingInSetProtocol"
-  ),
-  PACKET_I_LOGIN(
-    "net.minecraft.network.protocol.login.PacketLoginInStart",
-    "net.minecraft.server.{v}.PacketLoginInStart"
-  ),
-  PACKET_I_KEEP_ALIVE(
-    "net.minecraft.network.protocol.game.PacketPlayInKeepAlive",
-    "net.minecraft.server.{v}.PacketPlayInKeepAlive"
-  ),
-  PACKET_I_CHAT(
-    "net.minecraft.network.protocol.game.PacketPlayInChat",
-    "net.minecraft.server.{v}.PacketPlayInChat"
-  ),
-  TILE_ENTITY_FURNACE(
-    "net.minecraft.world.level.block.entity.TileEntityFurnace",
-    "net.minecraft.server.{v}.TileEntityFurnace"
-  ),
-  NBT_READ_LIMITER(
-    "net.minecraft.nbt.NBTReadLimiter",
-    "net.minecraft.server.{v}.NBTReadLimiter"
-  ),
-  NBT_TAG_LIST(
-    "net.minecraft.nbt.NBTTagList",
-    "net.minecraft.server.{v}.NBTTagList"
-  ),
-  NBT_LIST(
-    "net.minecraft.nbt.NBTList",
-    "net.minecraft.server.{v}.NBTList"
-  ),
-  NBT_NUMBER(
-    "net.minecraft.nbt.NBTNumber",
-    "net.minecraft.server.{v}.NBTNumber"
-  ),
-  NBT_TAG_COMPOUND(
-    "net.minecraft.nbt.NBTTagCompound",
-    "net.minecraft.server.{v}.NBTTagCompound"
-  ),
-  NBT_TAG_STRING(
-    "net.minecraft.nbt.NBTTagString",
-    "net.minecraft.server.{v}.NBTTagString"
-  ),
-  NBT_TAG_INT(
-    "net.minecraft.nbt.NBTTagInt",
-    "net.minecraft.server.{v}.NBTTagInt"
-  ),
-  NBT_TAG_INT_ARRAY(
-    "net.minecraft.nbt.NBTTagIntArray",
-    "net.minecraft.server.{v}.NBTTagIntArray"
-  ),
-  NBT_TAG_BYTE_ARRAY(
-    "net.minecraft.nbt.NBTTagByteArray",
-    "net.minecraft.server.{v}.NBTTagByteArray"
-  ),
-  NBT_TAG_LONG_ARRAY(
-    "net.minecraft.nbt.NBTTagLongArray",
-    "net.minecraft.server.{v}.NBTTagLongArray"
-  ),
-  NBT_TAG_FLOAT(
-    "net.minecraft.nbt.NBTTagFloat",
-    "net.minecraft.server.{v}.NBTTagFloat"
-  ),
-  NBT_TAG_BYTE(
-    "net.minecraft.nbt.NBTTagByte",
-    "net.minecraft.server.{v}.NBTTagByte"
-  ),
-  NBT_TAG_SHORT(
-    "net.minecraft.nbt.NBTTagShort",
-    "net.minecraft.server.{v}.NBTTagShort"
-  ),
-  NBT_TAG_LONG(
-    "net.minecraft.nbt.NBTTagLong",
-    "net.minecraft.server.{v}.NBTTagLong"
-  ),
-  NBT_TAG_DOUBLE(
-    "net.minecraft.nbt.NBTTagDouble",
-    "net.minecraft.server.{v}.NBTTagDouble"
-  ),
-  NBT_BASE(
-    "net.minecraft.nbt.NBTBase",
-    "net.minecraft.server.{v}.NBTBase"
-  ),
-  ENTITY(
-    "net.minecraft.world.entity.Entity",
-    "net.minecraft.server.{v}.Entity"
-  ),
-  ENTITY_HUMAN(
-    "net.minecraft.world.entity.player.EntityHuman",
-    "net.minecraft.server.{v}.EntityHuman"
-  ),
-  ENTITY_PLAYER(
-    "net.minecraft.server.level.EntityPlayer",
-    "net.minecraft.server.{v}.EntityPlayer"
-  ),
-  CONTAINER(
-    "net.minecraft.world.inventory.Container",
-    "net.minecraft.server.{v}.Container"
-  ),
-  CRAFT_ITEM_STACK(
-    "org.bukkit.craftbukkit.{v}.inventory.CraftItemStack",
-    "org.bukkit.craftbukkit.{v}.inventory.CraftItemStack"
-  ),
-  CRAFT_SERVER(
-    "org.bukkit.craftbukkit.{v}.CraftServer",
-    "org.bukkit.craftbukkit.{v}.CraftServer"
-  ),
-  CRAFT_META_ITEM(
-    "org.bukkit.craftbukkit.{v}.inventory.CraftMetaItem",
-    "org.bukkit.craftbukkit.{v}.inventory.CraftMetaItem"
-  ),
-  CRAFT_PLAYER(
-    "org.bukkit.craftbukkit.{v}.entity.CraftPlayer",
-    "org.bukkit.craftbukkit.{v}.entity.CraftPlayer"
-  ),
-  CRAFT_ITEM(
-    "org.bukkit.craftbukkit.{v}.entity.CraftItem",
-    "org.bukkit.craftbukkit.{v}.entity.CraftItem"
-  ),
-  ENUM_GAME_MODE(
-    "net.minecraft.world.level.EnumGamemode",
-    "net.minecraft.server.{v}.EnumGamemode"
-  ),
-  PROFILE_PUBLIC_KEY(
-    "net.minecraft.world.entity.player.ProfilePublicKey",
-    ""
+  MINECRAFT_SERVER((ver, after) -> after ?
+    Class.forName("net.minecraft.server.MinecraftServer") :
+    Class.forName("net.minecraft.server." + ver + ".MinecraftServer")
+  ),
+  SCOREBOARD_SERVER((ver, after) -> after ?
+    Class.forName("net.minecraft.server.ScoreboardServer") :
+    Class.forName("net.minecraft.server." + ver + ".ScoreboardServer")
+  ),
+  SCOREBOARD_TEAM((ver, after) -> after ?
+    Class.forName("net.minecraft.world.score.ScoreboardTeam") :
+    Class.forName("net.minecraft.server." + ver + ".ScoreboardTeam")
+  ),
+  SCOREBOARD((ver, after) -> after ?
+    Class.forName("net.minecraft.world.score.Scoreboard") :
+    Class.forName("net.minecraft.server." + ver + ".Scoreboard")
+  ),
+  CRAFT_TEAM((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".scoreboard.CraftTeam")
+  ),
+  CRAFT_SCOREBOARD((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".scoreboard.CraftScoreboard")
+  ),
+  CRAFT_SCOREBOARD_MANAGER((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".scoreboard.CraftScoreboardManager")
+  ),
+  PACKET((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.Packet") :
+    Class.forName("net.minecraft.server." + ver + ".Packet")
+  ),
+  I_CHAT_BASE_COMPONENT((ver, after) -> after ?
+    Class.forName("net.minecraft.network.chat.IChatBaseComponent") :
+    Class.forName("net.minecraft.server." + ver + ".IChatBaseComponent")
+  ),
+  CHAT_SERIALIZER((ver, after) -> after ?
+    Class.forName("net.minecraft.network.chat.IChatBaseComponent$ChatSerializer") :
+    Class.forName("net.minecraft.server." + ver + ".IChatBaseComponent$ChatSerializer")
+  ),
+  CHAT_MESSAGE_TYPE((ver, after) -> after ?
+    Class.forName("net.minecraft.network.chat.ChatMessageType") :
+    Class.forName("net.minecraft.server." + ver + ".ChatMessageType")
+  ),
+  FILTERED_TEXT((ver, after) -> after ?
+    Class.forName("net.minecraft.server.network.FilteredText") :
+    null
+  ),
+  MESSAGE_SIGNATURE((ver, after) -> after ?
+    Class.forName("net.minecraft.network.chat.MessageSignature") :
+    null
+  ),
+  PLAYER_CHAT_MESSAGE((ver, after) -> after ?
+    Class.forName("net.minecraft.network.chat.PlayerChatMessage") :
+    null
+  ),
+  NETWORK_MANAGER((ver, after) -> after ?
+    Class.forName("net.minecraft.network.NetworkManager") :
+    Class.forName("net.minecraft.server." + ver + ".NetworkManager")
+  ),
+  QUEUED_PACKET((ver, after) -> after ?
+    Class.forName("net.minecraft.network.NetworkManager$QueuedPacket") :
+    Class.forName("net.minecraft.server." + ver + ".NetworkManager$QueuedPacket")
+  ),
+  SERVER_CONNECTION((ver, after) -> after ?
+    Class.forName("net.minecraft.server.network.ServerConnection") :
+    Class.forName("net.minecraft.server." + ver + ".ServerConnection")
+  ),
+  PLAYER_CONNECTION((ver, after) -> after ?
+    Class.forName("net.minecraft.server.network.PlayerConnection") :
+    Class.forName("net.minecraft.server." + ver + ".PlayerConnection")
+  ),
+  PLAYER_LIST((ver, after) -> after ?
+    Class.forName("net.minecraft.server.players.PlayerList") :
+    Class.forName("net.minecraft.server." + ver + ".PlayerList")
+  ),
+  RESOURCE_KEY((ver, after) -> after ?
+    Class.forName("net.minecraft.resources.ResourceKey") :
+    null
+  ),
+  PACKET_DATA_SERIALIZER((ver, after) -> after ?
+    Class.forName("net.minecraft.network.PacketDataSerializer") :
+    Class.forName("net.minecraft.server." + ver + ".PacketDataSerializer")
+  ),
+  ITEM((ver, after) -> after ?
+    Class.forName("net.minecraft.world.item.Item") :
+    Class.forName("net.minecraft.server." + ver + ".Item")
+  ),
+  ITEM_STACK((ver, after) -> after ?
+    Class.forName("net.minecraft.world.item.ItemStack") :
+    Class.forName("net.minecraft.server." + ver + ".ItemStack")
+  ),
+  GENERIC_ATTRIBUTES((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.ai.attributes.GenericAttributes") :
+    Class.forName("net.minecraft.server." + ver + ".GenericAttributes")
+  ),
+  ATTRIBUTE_BASE((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.ai.attributes.AttributeBase") :
+    Class.forName("net.minecraft.server." + ver + ".AttributeBase")
+  ),
+  CHAT_COMPONENT_TEXT((ver, after) -> after ?
+    Class.forName("net.minecraft.network.chat.ChatComponentText") :
+    Class.forName("net.minecraft.server." + ver + ".ChatComponentText")
+  ),
+  PACKET_O_OPEN_WINDOW((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutOpenWindow") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutOpenWindow")
+  ),
+  PACKET_O_SET_SLOT((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutSetSlot") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutSetSlot")
+  ),
+  PACKET_O_PLAYER_INFO((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutPlayerInfo")
+  ),
+  ENUM_PLAYER_INFO_ACTION((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo$EnumPlayerInfoAction") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutPlayerInfo$EnumPlayerInfoAction")
+  ),
+  PLAYER_INFO_DATA((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo$PlayerInfoData") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutPlayerInfo$PlayerInfoData")
+  ),
+  PACKET_O_CHAT((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutChat") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutChat")
+  ),
+  PACKET_O_WINDOW_DATA((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutWindowData") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutWindowData")
+  ),
+  PACKET_O_TITLE((ver, after) -> after ?
+    null :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutTitle")
+  ),
+  PACKET_O_LOGIN((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.login.PacketLoginOutSuccess") :
+    Class.forName("net.minecraft.server." + ver + ".PacketLoginOutSuccess")
+  ),
+  PACKET_O_KEEP_ALIVE((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutKeepAlive") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutKeepAlive")
+  ),
+  PACKET_O_SCOREBOARD_TEAM((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeam") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutScoreboardTeam")
+  ),
+  ENUM_TITLE_ACTION((ver, after) -> after ?
+    null :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutTitle$EnumTitleAction")
+  ),
+  CLIENTBOUND_TITLES_ANIMATION((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket") :
+    null
+  ),
+  CLIENTBOUND_TITLE_SET((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket") :
+    null
+  ),
+  CLIENTBOUND_SUBTITLE_SET((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket") :
+    null
+  ),
+  CLIENTBOUND_SYSTEM_CHAT_PACKET((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.ClientboundSystemChatPacket") :
+    null
+  ),
+  PACKET_I_B_EDIT((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInBEdit") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInBEdit")
+  ),
+  PACKET_I_SET_CREATIVE_SLOT((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInSetCreativeSlot") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInSetCreativeSlot")
+  ),
+  PACKET_I_ITEM_NAME((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInItemName") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInItemName")
+  ),
+  PACKET_I_HANDSHAKE((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.handshake.PacketHandshakingInSetProtocol") :
+    Class.forName("net.minecraft.server." + ver + ".PacketHandshakingInSetProtocol")
+  ),
+  PACKET_I_LOGIN((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.login.PacketLoginInStart") :
+    Class.forName("net.minecraft.server." + ver + ".PacketLoginInStart")
+  ),
+  PACKET_I_KEEP_ALIVE((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInKeepAlive") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInKeepAlive")
+  ),
+  PACKET_I_CHAT((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInChat") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInChat")
+  ),
+  TILE_ENTITY_FURNACE((ver, after) -> after ?
+    Class.forName("net.minecraft.world.level.block.entity.TileEntityFurnace") :
+    Class.forName("net.minecraft.server." + ver + ".TileEntityFurnace")
+  ),
+  NBT_READ_LIMITER((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTReadLimiter") :
+    Class.forName("net.minecraft.server." + ver + ".NBTReadLimiter")
+  ),
+  NBT_TAG_LIST((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagList") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagList")
+  ),
+  NBT_LIST((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTList") :
+    Class.forName("net.minecraft.server." + ver + ".NBTList")
+  ),
+  NBT_NUMBER((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTNumber") :
+    Class.forName("net.minecraft.server." + ver + ".NBTNumber")
+  ),
+  NBT_TAG_COMPOUND((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagCompound") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagCompound")
+  ),
+  NBT_TAG_STRING((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagString") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagString")
+  ),
+  NBT_TAG_INT((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagInt") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagInt")
+  ),
+  NBT_TAG_INT_ARRAY((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagIntArray") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagIntArray")
+  ),
+  NBT_TAG_BYTE_ARRAY((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagByteArray") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagByteArray")
+  ),
+  NBT_TAG_LONG_ARRAY((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagLongArray") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagLongArray")
+  ),
+  NBT_TAG_FLOAT((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagFloat") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagFloat")
+  ),
+  NBT_TAG_BYTE((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagByte") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagByte")
+  ),
+  NBT_TAG_SHORT((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagShort") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagShort")
+  ),
+  NBT_TAG_LONG((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagLong") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagLong")
+  ),
+  NBT_TAG_DOUBLE((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTTagDouble") :
+    Class.forName("net.minecraft.server." + ver + ".NBTTagDouble")
+  ),
+  NBT_BASE((ver, after) -> after ?
+    Class.forName("net.minecraft.nbt.NBTBase") :
+    Class.forName("net.minecraft.server." + ver + ".NBTBase")
+  ),
+  ENTITY((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.Entity") :
+    Class.forName("net.minecraft.server." + ver + ".Entity")
+  ),
+  ENTITY_HUMAN((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.player.EntityHuman") :
+    Class.forName("net.minecraft.server." + ver + ".EntityHuman")
+  ),
+  ENTITY_PLAYER((ver, after) -> after ?
+    Class.forName("net.minecraft.server.level.EntityPlayer") :
+    Class.forName("net.minecraft.server." + ver + ".EntityPlayer")
+  ),
+  CONTAINER((ver, after) -> after ?
+    Class.forName("net.minecraft.world.inventory.Container") :
+    Class.forName("net.minecraft.server." + ver + ".Container")
+  ),
+  CRAFT_ITEM_STACK((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".inventory.CraftItemStack")
+  ),
+  CRAFT_SERVER((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".CraftServer")
+  ),
+  CRAFT_META_ITEM((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".inventory.CraftMetaItem")
+  ),
+  CRAFT_PLAYER((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".entity.CraftPlayer")
+  ),
+  CRAFT_ITEM((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".entity.CraftItem")
+  ),
+  ENUM_GAME_MODE((ver, after) -> after ?
+    Class.forName("net.minecraft.world.level.EnumGamemode") :
+    Class.forName("net.minecraft.server." + ver + ".EnumGamemode")
+  ),
+  PROFILE_PUBLIC_KEY((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.player.ProfilePublicKey") :
+    null
   )
   ;
 
-  private final String afterRefactor, beforeRefactor;
+  private final IUnsafeBiFunction<ServerVersion, Boolean, Class<?>, ClassNotFoundException> resolve;
   private static final Map<RClass, ClassHandle> cache;
 
   static {
@@ -330,23 +322,17 @@ public enum RClass {
   public ClassHandle resolve(ServerVersion version) throws ClassNotFoundException {
     ClassHandle res = cache.get(this);
 
-    // Respond with cache result
     if (res != null)
       return res;
 
-    String className;
+    Class<?> c = resolve.apply(version, version.getMinor() >= 17);
 
-    if (version.getMinor() >= 17)
-      className = this.afterRefactor;
-    else
-      className = this.beforeRefactor;
+    if (c == null)
+      throw new IllegalStateException("Could not resolve the target class");
 
-    // Substitute version placeholders
-    className = className.replace("{v}", version.toString());
-
-    // Load class and then cache it's value
-    res = ClassHandle.of(Class.forName(className));
+    res = new ClassHandle(c);
     cache.put(this, res);
+
     return res;
   }
 }
