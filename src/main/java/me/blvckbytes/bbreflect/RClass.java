@@ -34,6 +34,26 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
+  ENUM_DIRECTION((ver, after) -> after ?
+    Class.forName("net.minecraft.core.EnumDirection") :
+    Class.forName("net.minecraft.server." + ver + ".EnumDirection")
+  ),
+  ENTITY_ITEM_FRAME((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.decoration.EntityItemFrame") :
+    Class.forName("net.minecraft.server." + ver + ".EntityItemFrame")
+  ),
+  WORLD_SERVER((ver, after) -> after ?
+    Class.forName("net.minecraft.server.level.WorldServer") :
+    Class.forName("net.minecraft.server." + ver + ".WorldServer")
+  ),
+  WORLD((ver, after) -> after ?
+    Class.forName("net.minecraft.world.level.World") :
+    Class.forName("net.minecraft.server." + ver + ".World")
+  ),
+  BLOCK_POSITION((ver, after) -> after ?
+    Class.forName("net.minecraft.core.BlockPosition") :
+    Class.forName("net.minecraft.server." + ver + ".BlockPosition")
+  ),
   MINECRAFT_SERVER((ver, after) -> after ?
     Class.forName("net.minecraft.server.MinecraftServer") :
     Class.forName("net.minecraft.server." + ver + ".MinecraftServer")
@@ -49,6 +69,9 @@ public enum RClass {
   SCOREBOARD((ver, after) -> after ?
     Class.forName("net.minecraft.world.score.Scoreboard") :
     Class.forName("net.minecraft.server." + ver + ".Scoreboard")
+  ),
+  CRAFT_WORLD((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".CraftWorld")
   ),
   CRAFT_TEAM((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver + ".scoreboard.CraftTeam")
