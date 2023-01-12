@@ -34,6 +34,10 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
+  WORLD_MAP((ver, after) -> after ?
+    Class.forName("net.minecraft.world.level.saveddata.maps.WorldMap") :
+    null
+  ),
   ENUM_DIRECTION((ver, after) -> after ?
     Class.forName("net.minecraft.core.EnumDirection") :
     Class.forName("net.minecraft.server." + ver + ".EnumDirection")
@@ -165,6 +169,10 @@ public enum RClass {
   CHAT_COMPONENT_TEXT((ver, after) -> after ?
     Class.forName("net.minecraft.network.chat.ChatComponentText") :
     Class.forName("net.minecraft.server." + ver + ".ChatComponentText")
+  ),
+  PACKET_O_MAP((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutMap") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutMap")
   ),
   PACKET_O_ENTITY_METADATA((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata") :
