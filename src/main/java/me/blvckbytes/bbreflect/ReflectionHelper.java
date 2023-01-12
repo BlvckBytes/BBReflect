@@ -24,6 +24,7 @@
 
 package me.blvckbytes.bbreflect;
 
+import io.netty.channel.Channel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.Getter;
@@ -44,16 +45,17 @@ public class ReflectionHelper {
   private final FieldHandle
     F_CRAFT_PLAYER__HANDLE,
     F_ENTITY_PLAYER__CONNECTION,
-    F_PLAYER_CONNECTION__NETWORK_MANAGER;
+    F_PLAYER_CONNECTION__NETWORK_MANAGER,
+    F_NETWORK_MANAGER__CHANNEL;
 
   private final MethodHandle M_NETWORK_MANAGER__SEND;
 
-  private final WeakHashMap<Player, Object> networkManagerCache;
+  private final WeakHashMap<Player, Tuple<Object, Channel>> networkManagerAndChannelCache;
 
   public ReflectionHelper(@Nullable Supplier<String> versionSupplier) throws Exception {
     this.versionStr = versionSupplier == null ? findVersion() : versionSupplier.get();
     this.version = parseVersion(this.versionStr);
-    this.networkManagerCache = new WeakHashMap<>();
+    this.networkManagerAndChannelCache = new WeakHashMap<>();
 
     ClassHandle C_CRAFT_PLAYER = getClass(RClass.CRAFT_PLAYER);
     ClassHandle C_ENTITY_PLAYER = getClass(RClass.ENTITY_PLAYER);
@@ -80,28 +82,37 @@ public class ReflectionHelper {
       .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
       .withParameter(GenericFutureListener.class)
       .required();
+
+    F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField()
+      .withType(Channel.class)
+      .required();
   }
 
-  private Object findNetworkManager(Player player) throws Exception {
+  private Tuple<Object, Channel> findNetworkManagerAndChannel(Player player) throws Exception {
     Object entityPlayer = F_CRAFT_PLAYER__HANDLE.get(player);
     Object playerConnection = F_ENTITY_PLAYER__CONNECTION.get(entityPlayer);
-    return F_PLAYER_CONNECTION__NETWORK_MANAGER.get(playerConnection);
+    Object networkManager = F_PLAYER_CONNECTION__NETWORK_MANAGER.get(playerConnection);
+    Object channel = F_NETWORK_MANAGER__CHANNEL.get(networkManager);
+    return new Tuple<>(networkManager, (Channel) channel);
   }
 
   public void sendPacket(Player player, Object packet, @Nullable Runnable completion) throws Exception {
-    Object networkManager = networkManagerCache.get(player);
+    Tuple<Object, Channel> networkManagerAndChannel = networkManagerAndChannelCache.get(player);
 
-    if (networkManager == null) {
-      networkManager = findNetworkManager(player);
-      networkManagerCache.put(player, networkManager);
+    if (networkManagerAndChannel == null) {
+      networkManagerAndChannel = findNetworkManagerAndChannel(player);
+      networkManagerAndChannelCache.put(player, networkManagerAndChannel);
     }
+
+    if (!networkManagerAndChannel.getB().isOpen())
+      return;
 
     GenericFutureListener<? extends Future<? super Void>> listener = null;
 
     if (completion != null)
       listener = v -> completion.run();
 
-    M_NETWORK_MANAGER__SEND.invoke(networkManager, packet, listener);
+    M_NETWORK_MANAGER__SEND.invoke(networkManagerAndChannel.getA(), packet, listener);
   }
 
   public ClassHandle getClass(RClass rc) throws ClassNotFoundException {

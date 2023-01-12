@@ -174,6 +174,10 @@ public enum RClass {
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutMap") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutMap")
   ),
+  PACKET_O_ENTITY_DESTROY((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutEntityDestroy")
+  ),
   PACKET_O_ENTITY_METADATA((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutEntityMetadata")
