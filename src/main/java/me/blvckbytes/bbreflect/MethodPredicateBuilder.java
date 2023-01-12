@@ -44,6 +44,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
   private final List<ComparableType> returnGenerics;
   private final List<ComparableType> parameterTypes;
   private boolean allowSuperclass;
+  private int skip;
 
   /**
    * Create a new method predicate builder on a class handle
@@ -252,6 +253,17 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
     return this;
   }
 
+  /////////////////////////////////// Skipping //////////////////////////////////
+
+  /**
+   * Define how many matches to skip
+   * @param skip Number of matches to skip
+   */
+  public MethodPredicateBuilder withSkip(int skip) {
+    this.skip = skip;
+    return this;
+  }
+
   ////////////////////////////////// Retrieval //////////////////////////////////
 
   @Override
@@ -275,7 +287,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
     if (name == null && returnType == null && parameterTypes.size() == 0)
       throw new IncompletePredicateBuilderException();
 
-    return new MethodHandle(targetClass.getHandle(), (member, count) -> {
+    return new MethodHandle(targetClass.getHandle(), (member, counter) -> {
 
       // Is inside of another class but superclass walking is disabled
       if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
@@ -303,18 +315,16 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
 
       // Check parameters, if applicable
       int numParameters = parameterTypes.size();
-      if (numParameters > 0) {
-        Class<?>[] parameters = member.getParameterTypes();
+      Class<?>[] parameters = member.getParameterTypes();
 
-        // Not exactly as many parameters as requested
-        if (numParameters != parameters.length)
+      // Not exactly as many parameters as requested
+      if (numParameters != parameters.length)
+        return false;
+
+      // Parameters need to match in sequence
+      for (int i = 0; i < numParameters; i++) {
+        if (!parameterTypes.get(i).matches(parameters[i]))
           return false;
-
-        // Parameters need to match in sequence
-        for (int i = 0; i < numParameters; i++) {
-          if (!parameterTypes.get(i).matches(parameters[i]))
-            return false;
-        }
       }
 
       // Check generic return parameters, if applicable
@@ -332,6 +342,10 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
             return false;
         }
       }
+
+      // Everything matches, while skip > matchCounter, count up
+      if (skip > counter)
+        return null;
 
       return true;
     });
