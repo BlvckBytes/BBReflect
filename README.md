@@ -53,12 +53,12 @@ public class ClassHandle extends AHandle<Class> {
     enumerations = new HashMap<>();
   }
 
-  public ClassHandle(Class<?> target, FMemberPredicate<Class> predicate) throws NoSuchElementException {
-    super(target, Class.class, predicate);
+  public ClassHandle(Class<?> target, ServerVersion version, FMemberPredicate<Class> predicate) throws NoSuchElementException {
+    super(target, Class.class, version, predicate);
   }
 
-  protected ClassHandle(Class handle) {
-    super(handle, Class.class);
+  protected ClassHandle(Class handle, ServerVersion version) {
+    super(handle, Class.class, version);
   }
 
   /**
@@ -81,7 +81,7 @@ public class ClassHandle extends AHandle<Class> {
       return enumHandle;
 
     // Create a new enum handle on this class
-    enumHandle = new EnumHandle(handle);
+    enumHandle = new EnumHandle(handle, version);
 
     // Store in cache and return
     enumerations.put(handle, enumHandle);
@@ -92,28 +92,28 @@ public class ClassHandle extends AHandle<Class> {
    * Create a new FieldHandle builder which will query this class
    */
   public FieldPredicateBuilder locateField() {
-    return new FieldPredicateBuilder(this);
+    return new FieldPredicateBuilder(this, version);
   }
 
   /**
    * Create a new MethodHandle builder which will query this class
    */
   public MethodPredicateBuilder locateMethod() {
-    return new MethodPredicateBuilder(this);
+    return new MethodPredicateBuilder(this, version);
   }
 
   /**
    * Create a new ConstructorHandle builder which will query this class
    */
   public ConstructorPredicateBuilder locateConstructor() {
-    return new ConstructorPredicateBuilder(this);
+    return new ConstructorPredicateBuilder(this, version);
   }
 
   /**
    * Create a new ClassHandle builder which will query this class
    */
   public ClassPredicateBuilder locateClass() {
-    return new ClassPredicateBuilder(this);
+    return new ClassPredicateBuilder(this, version);
   }
 
   @Override
@@ -130,13 +130,14 @@ public class ClassHandle extends AHandle<Class> {
   /**
    * Create a new class handle on top of a vanilla class
    * @param c Target class
+   * @param version Current server version
    */
-  public static ClassHandle of(Class<?> c) {
+  public static ClassHandle of(Class<?> c, ServerVersion version) {
     ClassHandle handle = encapsulations.get(c);
 
     // Create new instance
     if (handle == null) {
-      handle = new ClassHandle(c);
+      handle = new ClassHandle(c, version);
       encapsulations.put(c, handle);
       return handle;
     }
@@ -170,10 +171,11 @@ public class EnumHandle extends ClassHandle {
   /**
    * Create a new enumeration handle on top of a enumeration class
    * @param c Class which represents an enumeration
+   * @param version Current server version
    * @throws IllegalStateException Thrown if the provided class is not an enumeration
    */
-  public EnumHandle(Class<?> c) throws IllegalStateException {
-    super(c);
+  public EnumHandle(Class<?> c, ServerVersion version) throws IllegalStateException {
+    super(c, version);
 
     Object[] constants = c.getEnumConstants();
 
@@ -182,7 +184,7 @@ public class EnumHandle extends ClassHandle {
       throw new IllegalStateException("This class does not represent an enumeration.");
 
     // Create a unmodifiable list of constants and wrap into a handle
-    e = List.of((Enum<?>[]) constants);
+    e = Arrays.asList((Enum<?>[]) constants);
   }
 
   /**
@@ -227,8 +229,11 @@ package me.blvckbytes.bbreflect;
 
 public class MethodHandle extends AHandle<Method> {
 
-  protected MethodHandle(Class<?> target, FMemberPredicate<Method> predicate) throws NoSuchElementException {
-    super(target, Method.class, predicate);
+  private final @Nullable FCallTransformer callTransformer;
+
+  protected MethodHandle(Class<?> target, ServerVersion version, @Nullable FCallTransformer callTransformer, FMemberPredicate<Method> predicate) throws NoSuchElementException {
+    super(target, Method.class, version, predicate);
+    this.callTransformer = callTransformer;
   }
 
   /**
@@ -238,6 +243,8 @@ public class MethodHandle extends AHandle<Method> {
    * @return Method return value
    */
   public Object invoke(Object o, Object... args) throws InvocationTargetException, IllegalAccessException {
+    if (callTransformer != null)
+      args = callTransformer.apply(args);
     return handle.invoke(o, args);
   }
 
@@ -276,8 +283,8 @@ package me.blvckbytes.bbreflect;
 
 public class FieldHandle extends AHandle<Field> {
 
-  public FieldHandle(Class<?> target, FMemberPredicate<Field> predicate) throws NoSuchElementException {
-    super(target, Field.class, predicate);
+  public FieldHandle(Class<?> target, ServerVersion version, FMemberPredicate<Field> predicate) throws NoSuchElementException {
+    super(target, Field.class, version, predicate);
   }
 
   /**
@@ -410,14 +417,14 @@ public class InterceptorFactory implements IPacketOperator {
 
       @Override
       public void channelRead(ChannelHandlerContext channelHandlerContext, Object o) {
-        ((Channel) o).pipeline().addFirst(new ChannelInitializer<>() {
+        ((Channel) o).pipeline().addFirst(new ChannelInitializer<Channel>() {
 
           @Override
           protected void initChannel(Channel channel) {
 
             // Add this initializer as the first item in the channel to be the
             // first receiver which gets a hold of it
-            channel.pipeline().addFirst(new ChannelInitializer<>() {
+            channel.pipeline().addFirst(new ChannelInitializer<Channel>() {
 
               @Override
               protected void initChannel(Channel channel) {
@@ -593,7 +600,7 @@ public class InterceptorFactory implements IPacketOperator {
       name = (String) F_PACKET_LOGIN__NAME.get(packet);
     }
 
-    if (name != null && !name.isBlank())
+    if (name != null && !name.isEmpty())
       interceptorByPlayerName.put(name, requester);
 
     return name;
