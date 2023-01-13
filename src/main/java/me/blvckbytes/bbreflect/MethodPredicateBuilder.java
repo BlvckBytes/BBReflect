@@ -32,10 +32,11 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Supplier;
 
-public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
+public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, MethodPredicateBuilder> {
 
-  private final ClassHandle targetClass;
+  private @Nullable FCallTransformer callTransformer;
   private @Nullable Boolean isStatic;
   private @Nullable Boolean isPublic;
   private @Nullable Boolean isAbstract;
@@ -51,11 +52,24 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
    * @param targetClass Class to search through
    */
   public MethodPredicateBuilder(ClassHandle targetClass) {
-    this.targetClass = targetClass;
+    super(targetClass);
+
     this.isStatic = false;
     this.allowSuperclass = false;
     this.parameterTypes = new ArrayList<>();
     this.returnGenerics = new ArrayList<>();
+  }
+
+  ////////////////////////////////// Transformer /////////////////////////////////
+
+  /**
+   * Set the call transformer which will be invoked before relaying
+   * the call to the handle's wrapped member
+   * @param transformer Transformer to set
+   */
+  public MethodPredicateBuilder withTransformer(@Nullable FCallTransformer transformer) {
+    this.callTransformer = transformer;
+    return this;
   }
 
   ////////////////////////////////// Modifiers //////////////////////////////////
@@ -267,18 +281,9 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
   ////////////////////////////////// Retrieval //////////////////////////////////
 
   @Override
-  public @Nullable MethodHandle optional() {
-    try {
-      return required();
-    }
-
-    catch (IncompletePredicateBuilderException e) {
-      throw e;
-    }
-
-    catch (Exception e) {
-      return null;
-    }
+  public MethodPredicateBuilder orElse(Supplier<MethodPredicateBuilder> builder) {
+    fallbacks.add(builder.get());
+    return null;
   }
 
   @Override
@@ -287,67 +292,71 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle> {
     if (name == null && returnType == null && parameterTypes.size() == 0)
       throw new IncompletePredicateBuilderException();
 
-    return new MethodHandle(targetClass.getHandle(), (member, counter) -> {
+    try {
+      return new MethodHandle(targetClass.getHandle(), callTransformer, (member, counter) -> {
 
-      // Is inside of another class but superclass walking is disabled
-      if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
-        return false;
-
-      // Static modifier mismatch
-      if (isStatic != null && Modifier.isStatic(member.getModifiers()) != isStatic)
-        return false;
-
-      // Abstract modifier mismatch
-      if (isAbstract != null && Modifier.isAbstract(member.getModifiers()) != isAbstract)
-        return false;
-
-      // Public modifier mismatch
-      if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
-        return false;
-
-      // Name mismatch
-      if (name != null && !member.getName().equalsIgnoreCase(name))
-        return false;
-
-      // Return type mismatch
-      if (returnType != null && !returnType.matches(member.getReturnType()))
-        return false;
-
-      // Check parameters, if applicable
-      int numParameters = parameterTypes.size();
-      Class<?>[] parameters = member.getParameterTypes();
-
-      // Not exactly as many parameters as requested
-      if (numParameters != parameters.length)
-        return false;
-
-      // Parameters need to match in sequence
-      for (int i = 0; i < numParameters; i++) {
-        if (!parameterTypes.get(i).matches(parameters[i]))
-          return false;
-      }
-
-      // Check generic return parameters, if applicable
-      int numGenerics = returnGenerics.size();
-      if (numGenerics > 0) {
-        Type[] types = ((ParameterizedType) member.getGenericReturnType()).getActualTypeArguments();
-
-        // Not enough generic type parameters available
-        if (types.length < numGenerics)
+        // Is inside of another class but superclass walking is disabled
+        if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
           return false;
 
-        // Type parameters need to match in sequence
-        for (int i = 0; i < numGenerics; i++) {
-          if (!returnGenerics.get(i).matches((Class<?>) types[i]))
+        // Static modifier mismatch
+        if (isStatic != null && Modifier.isStatic(member.getModifiers()) != isStatic)
+          return false;
+
+        // Abstract modifier mismatch
+        if (isAbstract != null && Modifier.isAbstract(member.getModifiers()) != isAbstract)
+          return false;
+
+        // Public modifier mismatch
+        if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
+          return false;
+
+        // Name mismatch
+        if (name != null && !member.getName().equalsIgnoreCase(name))
+          return false;
+
+        // Return type mismatch
+        if (returnType != null && !returnType.matches(member.getReturnType()))
+          return false;
+
+        // Check parameters, if applicable
+        int numParameters = parameterTypes.size();
+        Class<?>[] parameters = member.getParameterTypes();
+
+        // Not exactly as many parameters as requested
+        if (numParameters != parameters.length)
+          return false;
+
+        // Parameters need to match in sequence
+        for (int i = 0; i < numParameters; i++) {
+          if (!parameterTypes.get(i).matches(parameters[i]))
             return false;
         }
-      }
 
-      // Everything matches, while skip > matchCounter, count up
-      if (skip > counter)
-        return null;
+        // Check generic return parameters, if applicable
+        int numGenerics = returnGenerics.size();
+        if (numGenerics > 0) {
+          Type[] types = ((ParameterizedType) member.getGenericReturnType()).getActualTypeArguments();
 
-      return true;
-    });
+          // Not enough generic type parameters available
+          if (types.length < numGenerics)
+            return false;
+
+          // Type parameters need to match in sequence
+          for (int i = 0; i < numGenerics; i++) {
+            if (!returnGenerics.get(i).matches((Class<?>) types[i]))
+              return false;
+          }
+        }
+
+        // Everything matches, while skip > matchCounter, count up
+        if (skip > counter)
+          return null;
+
+        return true;
+      });
+    } catch (NoSuchElementException e) {
+      return invokeFallbacks(e);
+    }
   }
 }

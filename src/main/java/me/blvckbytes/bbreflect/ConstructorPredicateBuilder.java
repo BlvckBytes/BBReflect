@@ -30,10 +30,11 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Supplier;
 
-public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHandle> {
+public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHandle, ConstructorPredicateBuilder> {
 
-  private final ClassHandle targetClass;
+  private @Nullable FCallTransformer callTransformer;
   private @Nullable Boolean isPublic;
   private final List<ComparableType> parameterTypes;
 
@@ -42,8 +43,22 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
    * @param targetClass Class to search through
    */
   public ConstructorPredicateBuilder(ClassHandle targetClass) {
+    super(targetClass);
+
     this.targetClass = targetClass;
     this.parameterTypes = new ArrayList<>();
+  }
+
+ ////////////////////////////////// Transformer /////////////////////////////////
+
+  /**
+   * Set the call transformer which will be invoked before relaying
+   * the call to the handle's wrapped member
+   * @param transformer Transformer to set
+   */
+  public ConstructorPredicateBuilder withTransformer(@Nullable FCallTransformer transformer) {
+    this.callTransformer = transformer;
+    return this;
   }
 
   ////////////////////////////////// Modifiers //////////////////////////////////
@@ -103,43 +118,38 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
   ////////////////////////////////// Retrieval //////////////////////////////////
 
   @Override
-  public @Nullable ConstructorHandle optional() {
-    try {
-      return required();
-    }
-
-    catch (IncompletePredicateBuilderException e) {
-      throw e;
-    }
-
-    catch (Exception e) {
-      return null;
-    }
+  public ConstructorPredicateBuilder orElse(Supplier<ConstructorPredicateBuilder> builder) {
+    fallbacks.add(builder.get());
+    return this;
   }
 
   @Override
   public ConstructorHandle required() throws NoSuchElementException {
-    return new ConstructorHandle(targetClass.getHandle(), (member, count) -> {
+    try {
+      return new ConstructorHandle(targetClass.getHandle(), callTransformer, (member, count) -> {
 
-      // Public modifier mismatch
-      if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
-        return false;
-
-      // Not exactly as many parameters as requested
-      int numParameters = parameterTypes.size();
-      if (member.getParameterCount() != numParameters)
-        return false;
-
-      // Check parameters, if applicable
-      Class<?>[] parameters = member.getParameterTypes();
-
-      // Parameters need to match in sequence
-      for (int i = 0; i < numParameters; i++) {
-        if (!parameterTypes.get(i).matches(parameters[i]))
+        // Public modifier mismatch
+        if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
           return false;
-      }
 
-      return true;
-    });
+        // Not exactly as many parameters as requested
+        int numParameters = parameterTypes.size();
+        if (member.getParameterCount() != numParameters)
+          return false;
+
+        // Check parameters, if applicable
+        Class<?>[] parameters = member.getParameterTypes();
+
+        // Parameters need to match in sequence
+        for (int i = 0; i < numParameters; i++) {
+          if (!parameterTypes.get(i).matches(parameters[i]))
+            return false;
+        }
+
+        return true;
+      });
+    } catch (NoSuchElementException e) {
+      return invokeFallbacks(e);
+    }
   }
 }

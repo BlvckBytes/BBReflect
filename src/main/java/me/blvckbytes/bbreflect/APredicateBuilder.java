@@ -26,17 +26,61 @@ package me.blvckbytes.bbreflect;
 
 import org.jetbrains.annotations.Nullable;
 
-public abstract class APredicateBuilder<T> {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.function.Supplier;
+
+public abstract class APredicateBuilder<T, B extends APredicateBuilder<T, B>> {
+
+  protected ClassHandle targetClass;
+  protected List<B> fallbacks;
+
+  protected APredicateBuilder(ClassHandle targetClass) {
+    this.targetClass = targetClass;
+    this.fallbacks = new ArrayList<>();
+  }
 
   /**
    * Get the predicate's result and return null if it couldn't be located
    */
-  public abstract @Nullable T optional();
+  public @Nullable T optional() {
+    try {
+      return required();
+    } catch (NoSuchElementException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Specify another fallback builder instance to invoke when the current builder
+   * couldn't be executed successfully
+   * @param builder Fallback predicate
+   */
+  public abstract B orElse(Supplier<B> builder);
 
   /**
    * Get the predicate's result and require that it's not null
-   * @throws Exception Not found exception if the result could not be located
+   * @throws NoSuchElementException Not found exception if the result could not be located
    */
-  public abstract T required() throws Exception;
+  public abstract T required() throws NoSuchElementException;
 
+  /**
+   * Tries to invoke all available fallbacks and returns the result of the
+   * first successful call to {@link #required()}
+   * @throws NoSuchElementException Exception thrown by the last callback, on failure
+   */
+  protected T invokeFallbacks(NoSuchElementException firstException) throws NoSuchElementException {
+    NoSuchElementException lastThrown = firstException;
+
+    for (B fallback : fallbacks) {
+      try {
+        return fallback.required();
+      } catch (NoSuchElementException e) {
+        lastThrown = e;
+      }
+    }
+
+    throw lastThrown;
+  }
 }

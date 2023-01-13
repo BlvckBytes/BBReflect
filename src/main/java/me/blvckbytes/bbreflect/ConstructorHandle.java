@@ -24,6 +24,8 @@
 
 package me.blvckbytes.bbreflect;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -33,8 +35,11 @@ import java.util.StringJoiner;
 @SuppressWarnings("rawtypes")
 public class ConstructorHandle extends AHandle<Constructor> {
 
-  public ConstructorHandle(Class<?> target, FMemberPredicate<Constructor> predicate) throws NoSuchElementException {
+  private final @Nullable FCallTransformer callTransformer;
+
+  public ConstructorHandle(Class<?> target, @Nullable FCallTransformer callTransformer, FMemberPredicate<Constructor> predicate) throws NoSuchElementException {
     super(target, Constructor.class, predicate);
+    this.callTransformer = callTransformer;
   }
 
   /**
@@ -43,6 +48,8 @@ public class ConstructorHandle extends AHandle<Constructor> {
    * @return Instance of the constructor's declaring class
    */
   public Object newInstance(Object... args) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+    if (callTransformer != null)
+      args = callTransformer.apply(args);
     return handle.newInstance(args);
   }
 

@@ -24,6 +24,8 @@
 
 package me.blvckbytes.bbreflect;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -32,8 +34,11 @@ import java.util.StringJoiner;
 
 public class MethodHandle extends AHandle<Method> {
 
-  protected MethodHandle(Class<?> target, FMemberPredicate<Method> predicate) throws NoSuchElementException {
+  private final @Nullable FCallTransformer callTransformer;
+
+  protected MethodHandle(Class<?> target, @Nullable FCallTransformer callTransformer, FMemberPredicate<Method> predicate) throws NoSuchElementException {
     super(target, Method.class, predicate);
+    this.callTransformer = callTransformer;
   }
 
   /**
@@ -43,6 +48,8 @@ public class MethodHandle extends AHandle<Method> {
    * @return Method return value
    */
   public Object invoke(Object o, Object... args) throws InvocationTargetException, IllegalAccessException {
+    if (callTransformer != null)
+      args = callTransformer.apply(args);
     return handle.invoke(o, args);
   }
 

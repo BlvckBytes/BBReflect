@@ -32,10 +32,9 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Supplier;
 
-public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
-
-  private final ClassHandle targetClass;
+public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldPredicateBuilder> {
 
   private @Nullable Boolean isStatic;
   private @Nullable Boolean isPublic;
@@ -50,7 +49,8 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
    * @param targetClass Class to search through
    */
   public FieldPredicateBuilder(ClassHandle targetClass) {
-    this.targetClass = targetClass;
+    super(targetClass);
+
     this.isStatic = false;
     this.allowSuperclass = false;
     this.genericTypes = new ArrayList<>();
@@ -195,18 +195,9 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
   ////////////////////////////////// Retrieval //////////////////////////////////
 
   @Override
-  public @Nullable FieldHandle optional() {
-    try {
-      return required();
-    }
-
-    catch (IncompletePredicateBuilderException e) {
-      throw e;
-    }
-
-    catch (Exception e) {
-      return null;
-    }
+  public FieldPredicateBuilder orElse(Supplier<FieldPredicateBuilder> builder) {
+    fallbacks.add(builder.get());
+    return null;
   }
 
   @Override
@@ -215,56 +206,60 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle> {
     if (name == null && type == null)
       throw new IncompletePredicateBuilderException();
 
-    return new FieldHandle(targetClass.getHandle(), (member, counter) -> {
+    try {
+      return new FieldHandle(targetClass.getHandle(), (member, counter) -> {
 
-      // Is inside of another class but superclass walking is disabled
-      if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
-        return false;
-
-      // Static modifier mismatch
-      if (isStatic != null && Modifier.isStatic(member.getModifiers()) != isStatic)
-        return false;
-
-      // Public modifier mismatch
-      if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
-        return false;
-
-      // Name mismatch
-      if (name != null && !member.getName().equalsIgnoreCase(name))
-        return false;
-
-      // Type mismatch
-      if (type != null && !type.matches(member.getType()))
-        return false;
-
-      // Check generic parameters, if applicable
-      int numGenerics = genericTypes.size();
-      if (numGenerics > 0) {
-        Type genericType = member.getGenericType();
-
-        // Not a generic type (<...>)
-        if (!(genericType instanceof ParameterizedType))
+        // Is inside of another class but superclass walking is disabled
+        if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
           return false;
 
-        Type[] types = ((ParameterizedType) genericType).getActualTypeArguments();
-
-        // Not enough generic type parameters available
-        if (types.length < numGenerics)
+        // Static modifier mismatch
+        if (isStatic != null && Modifier.isStatic(member.getModifiers()) != isStatic)
           return false;
 
-        // Type parameters need to match in sequence
-        for (int i = 0; i < numGenerics; i++) {
-          if (!genericTypes.get(i).matches(unwrapType(types[i])))
+        // Public modifier mismatch
+        if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)
+          return false;
+
+        // Name mismatch
+        if (name != null && !member.getName().equalsIgnoreCase(name))
+          return false;
+
+        // Type mismatch
+        if (type != null && !type.matches(member.getType()))
+          return false;
+
+        // Check generic parameters, if applicable
+        int numGenerics = genericTypes.size();
+        if (numGenerics > 0) {
+          Type genericType = member.getGenericType();
+
+          // Not a generic type (<...>)
+          if (!(genericType instanceof ParameterizedType))
             return false;
+
+          Type[] types = ((ParameterizedType) genericType).getActualTypeArguments();
+
+          // Not enough generic type parameters available
+          if (types.length < numGenerics)
+            return false;
+
+          // Type parameters need to match in sequence
+          for (int i = 0; i < numGenerics; i++) {
+            if (!genericTypes.get(i).matches(unwrapType(types[i])))
+              return false;
+          }
         }
-      }
 
-      // Everything matches, while skip > matchCounter, count up
-      if (skip > counter)
-        return null;
+        // Everything matches, while skip > matchCounter, count up
+        if (skip > counter)
+          return null;
 
-      return true;
-    });
+        return true;
+      });
+    } catch (NoSuchElementException e) {
+      return invokeFallbacks(e);
+    }
   }
 
   /**

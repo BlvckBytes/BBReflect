@@ -28,10 +28,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.util.NoSuchElementException;
+import java.util.function.Supplier;
 
-public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle> {
+public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassPredicateBuilder> {
 
-  private final ClassHandle targetClass;
   private @Nullable Boolean isPublic;
   private @Nullable Boolean isStatic;
   private int skip;
@@ -41,7 +41,7 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle> {
    * @param targetClass Class to search through
    */
   public ClassPredicateBuilder(ClassHandle targetClass) {
-    this.targetClass = targetClass;
+    super(targetClass);
   }
 
   ////////////////////////////////// Modifiers //////////////////////////////////
@@ -78,37 +78,32 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle> {
   ////////////////////////////////// Retrieval //////////////////////////////////
 
   @Override
-  public @Nullable ClassHandle optional() {
-    try {
-      return required();
-    }
-
-    catch (IncompletePredicateBuilderException e) {
-      throw e;
-    }
-
-    catch (Exception e) {
-      return null;
-    }
+  public ClassPredicateBuilder orElse(Supplier<ClassPredicateBuilder> builder) {
+    fallbacks.add(builder.get());
+    return this;
   }
 
   @Override
   public ClassHandle required() throws NoSuchElementException {
-    return new ClassHandle(targetClass.getHandle(), (c, mc) -> {
+    try {
+      return new ClassHandle(targetClass.getHandle(), (c, mc) -> {
 
-      // Static modifier mismatch
-      if (isStatic != null && Modifier.isStatic(c.getModifiers()) != isStatic)
-        return false;
+        // Static modifier mismatch
+        if (isStatic != null && Modifier.isStatic(c.getModifiers()) != isStatic)
+          return false;
 
-      // Public modifier mismatch
-      if (isPublic != null && Modifier.isPublic(c.getModifiers()) != isPublic)
-        return false;
+        // Public modifier mismatch
+        if (isPublic != null && Modifier.isPublic(c.getModifiers()) != isPublic)
+          return false;
 
-      // Everything matches, while skip > matchCounter, count up
-      if (skip > mc)
-        return null;
+        // Everything matches, while skip > matchCounter, count up
+        if (skip > mc)
+          return null;
 
-      return true;
-    });
+        return true;
+      });
+    } catch (NoSuchElementException e) {
+      return invokeFallbacks(e);
+    }
   }
 }
