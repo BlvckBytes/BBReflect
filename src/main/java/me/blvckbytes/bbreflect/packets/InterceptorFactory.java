@@ -26,8 +26,6 @@ package me.blvckbytes.bbreflect.packets;
 
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.*;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
 import me.blvckbytes.bbreflect.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -43,7 +41,7 @@ public class InterceptorFactory implements IPacketOperator {
   private final String handlerName;
 
   private final ClassHandle C_PACKET_LOGIN;
-  private final MethodHandle M_CRAFT_PLAYER__HANDLE, M_NETWORK_MANAGER__SEND_PACKET;
+  private final MethodHandle M_CRAFT_PLAYER__HANDLE;
   private final @Nullable FieldHandle F_PACKET_LOGIN__GAME_PROFILE;
   private @Nullable FieldHandle F_PACKET_LOGIN__NAME;
 
@@ -54,8 +52,10 @@ public class InterceptorFactory implements IPacketOperator {
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
   private final WeakHashMap<String, Interceptor> interceptorByPlayerName;
   private final List<Interceptor> interceptors;
+  private final ReflectionHelper helper;
 
   public InterceptorFactory(ReflectionHelper helper, String handlerName) throws Exception {
+    this.helper = helper;
     this.handlerName = handlerName;
     this.interceptors = new ArrayList<>();
     this.channelHandlers = new HashMap<>();
@@ -68,7 +68,6 @@ public class InterceptorFactory implements IPacketOperator {
     ClassHandle C_CRAFT_SERVER = helper.getClass(RClass.CRAFT_SERVER);
     ClassHandle C_MINECRAFT_SERVER = helper.getClass(RClass.MINECRAFT_SERVER);
     ClassHandle C_SERVER_CONNECTION = helper.getClass(RClass.SERVER_CONNECTION);
-    ClassHandle C_PACKET = helper.getClass(RClass.PACKET);
 
     C_PACKET_LOGIN = helper.getClass(RClass.PACKET_I_LOGIN);
 
@@ -96,13 +95,6 @@ public class InterceptorFactory implements IPacketOperator {
 
     // NetworkManager -> Channel
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField().withType(Channel.class).required();
-
-    // public NetworkManager#sendPacket(Packet<?>, GenericFutureListener<?>)
-    M_NETWORK_MANAGER__SEND_PACKET = C_NETWORK_MANAGER.locateMethod()
-      .withPublic(true)
-      .withParameter(C_PACKET)
-      .withParameter(GenericFutureListener.class)
-      .required();
   }
 
   /**
@@ -310,11 +302,6 @@ public class InterceptorFactory implements IPacketOperator {
 
   @Override
   public void sendPacket(Object packet, @Nullable Runnable completion, Object networkManager) throws Exception {
-    GenericFutureListener<? extends Future<? super Void>> listener = null;
-
-    if (completion != null)
-      listener = f -> completion.run();
-
-    M_NETWORK_MANAGER__SEND_PACKET.invoke(networkManager, packet, listener);
+    helper.sendPacket(networkManager, packet, completion);
   }
 }

@@ -294,7 +294,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
   @Override
   public MethodPredicateBuilder orElse(Supplier<MethodPredicateBuilder> builder) {
     fallbacks.add(builder.get());
-    return null;
+    return this;
   }
 
   @Override

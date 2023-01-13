@@ -81,6 +81,14 @@ public class ReflectionHelper {
     M_NETWORK_MANAGER__SEND = C_NETWORK_MANAGER.locateMethod()
       .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
       .withParameter(GenericFutureListener.class)
+      .orElse(() -> (
+        C_NETWORK_MANAGER.locateMethod()
+          .withVersionRange(null, ServerVersion.V1_12_R2)
+          .withTransformer(args -> new Object[] { args[0], args[1], new GenericFutureListener[0] })
+          .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
+          .withParameter(GenericFutureListener.class)
+          .withParameter(GenericFutureListener[].class)
+      ))
       .required();
 
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField()
@@ -96,6 +104,15 @@ public class ReflectionHelper {
     return new Tuple<>(networkManager, (Channel) channel);
   }
 
+  public void sendPacket(Object networkManager, Object packet, @Nullable Runnable completion) throws Exception {
+    GenericFutureListener<? extends Future<? super Void>> listener = null;
+
+    if (completion != null)
+      listener = v -> completion.run();
+
+    M_NETWORK_MANAGER__SEND.invoke(networkManager, packet, listener);
+  }
+
   public void sendPacket(Player player, Object packet, @Nullable Runnable completion) throws Exception {
     Tuple<Object, Channel> networkManagerAndChannel = networkManagerAndChannelCache.get(player);
 
@@ -107,12 +124,7 @@ public class ReflectionHelper {
     if (!networkManagerAndChannel.getB().isOpen())
       return;
 
-    GenericFutureListener<? extends Future<? super Void>> listener = null;
-
-    if (completion != null)
-      listener = v -> completion.run();
-
-    M_NETWORK_MANAGER__SEND.invoke(networkManagerAndChannel.getA(), packet, listener);
+    sendPacket(networkManagerAndChannel.getA(), packet, completion);
   }
 
   public ClassHandle getClass(RClass rc) throws ClassNotFoundException {
