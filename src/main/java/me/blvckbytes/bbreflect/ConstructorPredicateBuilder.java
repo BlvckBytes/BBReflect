@@ -57,9 +57,18 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
    * Set the call transformer which will be invoked before relaying
    * the call to the handle's wrapped member
    * @param transformer Transformer to set
+   * @param dependencies List of handles which this transformer depends on and which have to be present
    */
-  public ConstructorPredicateBuilder withTransformer(@Nullable FCallTransformer transformer) {
+  public ConstructorPredicateBuilder withTransformer(@Nullable FCallTransformer transformer, AHandle<?>... dependencies) {
     this.callTransformer = transformer;
+
+    if (isInVersionRange()) {
+      for (AHandle<?> handle : dependencies) {
+        if (handle == null)
+          throw new IllegalStateException("One of the transformers dependencies is missing");
+      }
+    }
+
     return this;
   }
 
@@ -102,6 +111,9 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
    * @param types Types to be present
    */
   public ConstructorPredicateBuilder withParameters(ClassHandle... types) {
+    if (!isInVersionRange())
+      return this;
+
     for (ClassHandle t : types)
       withParameter(t.getHandle(), false, Assignability.NONE);
     return this;
@@ -114,6 +126,9 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public ConstructorPredicateBuilder withParameter(ClassHandle generic, boolean allowBoxing, Assignability assignability) {
+    if (!isInVersionRange())
+      return this;
+
     return withParameter(generic.getHandle(), allowBoxing, assignability);
   }
 

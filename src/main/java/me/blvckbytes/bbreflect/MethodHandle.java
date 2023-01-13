@@ -48,7 +48,7 @@ public class MethodHandle extends AHandle<Method> {
    * @param args Arguments to pass when invoking the method
    * @return Method return value
    */
-  public Object invoke(Object o, Object... args) throws InvocationTargetException, IllegalAccessException {
+  public Object invoke(Object o, Object... args) throws Exception {
     if (callTransformer != null)
       args = callTransformer.apply(args);
     return handle.invoke(o, args);

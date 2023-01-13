@@ -78,6 +78,10 @@ public abstract class APredicateBuilder<T, B extends APredicateBuilder<T, B>> {
    */
   public abstract B orElse(Supplier<B> builder);
 
+  protected boolean isInVersionRange() {
+    return (maxVersion == null || version.compare(maxVersion) <= 0) && (minVersion == null || version.compare(minVersion) >= 0);
+  }
+
   protected void checkVersionRange() throws NoSuchElementException {
     if (maxVersion != null && version.compare(maxVersion) > 0)
       throw new NoSuchElementException("This version is higher than the supported version");

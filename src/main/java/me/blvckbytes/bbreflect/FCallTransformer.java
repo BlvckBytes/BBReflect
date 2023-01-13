@@ -30,6 +30,6 @@ public interface FCallTransformer {
   /**
    * Rearranges a call so that it can match the signature of it's representative member
    */
-  Object[] apply(Object[] arguments);
+  Object[] apply(Object[] arguments) throws Exception;
 
 }

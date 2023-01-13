@@ -48,7 +48,7 @@ public class ConstructorHandle extends AHandle<Constructor> {
    * @param args Args to pass when calling
    * @return Instance of the constructor's declaring class
    */
-  public Object newInstance(Object... args) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+  public Object newInstance(Object... args) throws Exception {
     if (callTransformer != null)
       args = callTransformer.apply(args);
     return handle.newInstance(args);

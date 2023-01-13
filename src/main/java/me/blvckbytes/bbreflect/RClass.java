@@ -36,7 +36,7 @@ import java.util.Map;
 public enum RClass {
   WORLD_MAP((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.saveddata.maps.WorldMap") :
-    null
+    Class.forName("net.minecraft.server." + ver + ".WorldMap")
   ),
   ENUM_DIRECTION((ver, after) -> after ?
     Class.forName("net.minecraft.core.EnumDirection") :

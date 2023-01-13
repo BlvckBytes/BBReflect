@@ -68,9 +68,18 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
    * Set the call transformer which will be invoked before relaying
    * the call to the handle's wrapped member
    * @param transformer Transformer to set
+   * @param dependencies List of handles which this transformer depends on and which have to be present
    */
-  public MethodPredicateBuilder withTransformer(@Nullable FCallTransformer transformer) {
+  public MethodPredicateBuilder withTransformer(@Nullable FCallTransformer transformer, AHandle<?>... dependencies) {
     this.callTransformer = transformer;
+
+    if (isInVersionRange()) {
+      for (AHandle<?> handle : dependencies) {
+        if (handle == null)
+          throw new IllegalStateException("One of the transformers dependencies is missing");
+      }
+    }
+
     return this;
   }
 
