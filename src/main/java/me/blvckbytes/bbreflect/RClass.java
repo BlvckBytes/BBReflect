@@ -372,6 +372,9 @@ public enum RClass {
   CRAFT_SERVER((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver + ".CraftServer")
   ),
+  CRAFT_MAP_VIEW((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver + ".map.CraftMapView")
+  ),
   CRAFT_META_ITEM((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver + ".inventory.CraftMetaItem")
   ),
