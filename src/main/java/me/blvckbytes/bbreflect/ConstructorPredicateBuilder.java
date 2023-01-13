@@ -24,6 +24,7 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
@@ -41,9 +42,10 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
   /**
    * Create a new constructor predicate builder on a class handle
    * @param targetClass Class to search through
+   * @param version Current server version
    */
-  public ConstructorPredicateBuilder(ClassHandle targetClass) {
-    super(targetClass);
+  public ConstructorPredicateBuilder(ClassHandle targetClass, ServerVersion version) {
+    super(targetClass, version);
 
     this.targetClass = targetClass;
     this.parameterTypes = new ArrayList<>();
@@ -126,7 +128,9 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
   @Override
   public ConstructorHandle required() throws NoSuchElementException {
     try {
-      return new ConstructorHandle(targetClass.getHandle(), callTransformer, (member, count) -> {
+      checkVersionRange();
+
+      return new ConstructorHandle(targetClass.getHandle(), version, callTransformer, (member, count) -> {
 
         // Public modifier mismatch
         if (isPublic != null && Modifier.isPublic(member.getModifiers()) != isPublic)

@@ -24,6 +24,7 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
@@ -37,8 +38,8 @@ public class ConstructorHandle extends AHandle<Constructor> {
 
   private final @Nullable FCallTransformer callTransformer;
 
-  public ConstructorHandle(Class<?> target, @Nullable FCallTransformer callTransformer, FMemberPredicate<Constructor> predicate) throws NoSuchElementException {
-    super(target, Constructor.class, predicate);
+  public ConstructorHandle(Class<?> target, ServerVersion version, @Nullable FCallTransformer callTransformer, FMemberPredicate<Constructor> predicate) throws NoSuchElementException {
+    super(target, Constructor.class, version, predicate);
     this.callTransformer = callTransformer;
   }
 

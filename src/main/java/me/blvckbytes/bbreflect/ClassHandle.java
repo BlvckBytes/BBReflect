@@ -24,6 +24,8 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.version.ServerVersion;
+
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,12 +46,12 @@ public class ClassHandle extends AHandle<Class> {
     enumerations = new HashMap<>();
   }
 
-  public ClassHandle(Class<?> target, FMemberPredicate<Class> predicate) throws NoSuchElementException {
-    super(target, Class.class, predicate);
+  public ClassHandle(Class<?> target, ServerVersion version, FMemberPredicate<Class> predicate) throws NoSuchElementException {
+    super(target, Class.class, version, predicate);
   }
 
-  protected ClassHandle(Class handle) {
-    super(handle, Class.class);
+  protected ClassHandle(Class handle, ServerVersion version) {
+    super(handle, Class.class, version);
   }
 
   /**
@@ -72,7 +74,7 @@ public class ClassHandle extends AHandle<Class> {
       return enumHandle;
 
     // Create a new enum handle on this class
-    enumHandle = new EnumHandle(handle);
+    enumHandle = new EnumHandle(handle, version);
 
     // Store in cache and return
     enumerations.put(handle, enumHandle);
@@ -83,28 +85,28 @@ public class ClassHandle extends AHandle<Class> {
    * Create a new FieldHandle builder which will query this class
    */
   public FieldPredicateBuilder locateField() {
-    return new FieldPredicateBuilder(this);
+    return new FieldPredicateBuilder(this, version);
   }
 
   /**
    * Create a new MethodHandle builder which will query this class
    */
   public MethodPredicateBuilder locateMethod() {
-    return new MethodPredicateBuilder(this);
+    return new MethodPredicateBuilder(this, version);
   }
 
   /**
    * Create a new ConstructorHandle builder which will query this class
    */
   public ConstructorPredicateBuilder locateConstructor() {
-    return new ConstructorPredicateBuilder(this);
+    return new ConstructorPredicateBuilder(this, version);
   }
 
   /**
    * Create a new ClassHandle builder which will query this class
    */
   public ClassPredicateBuilder locateClass() {
-    return new ClassPredicateBuilder(this);
+    return new ClassPredicateBuilder(this, version);
   }
 
   @Override
@@ -121,13 +123,14 @@ public class ClassHandle extends AHandle<Class> {
   /**
    * Create a new class handle on top of a vanilla class
    * @param c Target class
+   * @param version Current server version
    */
-  public static ClassHandle of(Class<?> c) {
+  public static ClassHandle of(Class<?> c, ServerVersion version) {
     ClassHandle handle = encapsulations.get(c);
 
     // Create new instance
     if (handle == null) {
-      handle = new ClassHandle(c);
+      handle = new ClassHandle(c, version);
       encapsulations.put(c, handle);
       return handle;
     }

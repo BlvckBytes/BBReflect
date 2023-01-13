@@ -24,6 +24,7 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
@@ -50,9 +51,10 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
   /**
    * Create a new method predicate builder on a class handle
    * @param targetClass Class to search through
+   * @param version Current server version
    */
-  public MethodPredicateBuilder(ClassHandle targetClass) {
-    super(targetClass);
+  public MethodPredicateBuilder(ClassHandle targetClass, ServerVersion version) {
+    super(targetClass, version);
 
     this.isStatic = false;
     this.allowSuperclass = false;
@@ -293,7 +295,9 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
       throw new IncompletePredicateBuilderException();
 
     try {
-      return new MethodHandle(targetClass.getHandle(), callTransformer, (member, counter) -> {
+      checkVersionRange();
+
+      return new MethodHandle(targetClass.getHandle(), version, callTransformer, (member, counter) -> {
 
         // Is inside of another class but superclass walking is disabled
         if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())

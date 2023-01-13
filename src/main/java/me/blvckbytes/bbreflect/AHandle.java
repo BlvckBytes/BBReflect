@@ -25,6 +25,7 @@
 package me.blvckbytes.bbreflect;
 
 import lombok.Getter;
+import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.AccessibleObject;
@@ -39,15 +40,17 @@ public abstract class AHandle<T> {
 
   protected final T handle;
   protected final Class<T> handleType;
+  protected final ServerVersion version;
 
   /**
    * Create a new handle by running a member predicate on a target class' members
    * @param target Target class
    * @param memberType Target member type
+   * @param version Current server version
    * @param predicate Member predicate to run
    * @throws NoSuchElementException Member predicate found no matches
    */
-  protected AHandle(Class<?> target, Class<T> memberType, FMemberPredicate<T> predicate) throws NoSuchElementException {
+  protected AHandle(Class<?> target, Class<T> memberType, ServerVersion version, FMemberPredicate<T> predicate) throws NoSuchElementException {
     if (target == null)
       throw new IllegalStateException("Target has to be present");
 
@@ -75,6 +78,7 @@ public abstract class AHandle<T> {
     if (result instanceof AccessibleObject)
       ((AccessibleObject) result).setAccessible(true);
 
+    this.version = version;
     this.handle = result;
     this.handleType = memberType;
   }
@@ -83,10 +87,12 @@ public abstract class AHandle<T> {
    * Construct a new handle using an immediate value
    * @param handle Immediate value
    * @param type Type of handle
+   * @param version Current server version
    */
-  protected AHandle(T handle, Class<T> type) {
+  protected AHandle(T handle, Class<T> type, ServerVersion version) {
     this.handle = handle;
     this.handleType = type;
+    this.version = version;
   }
 
   /**

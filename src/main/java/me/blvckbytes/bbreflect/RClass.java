@@ -409,7 +409,7 @@ public enum RClass {
     if (c == null)
       throw new IllegalStateException("Could not resolve the target class");
 
-    res = new ClassHandle(c);
+    res = new ClassHandle(c, version);
     cache.put(this, res);
 
     return res;

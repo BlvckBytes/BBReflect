@@ -24,6 +24,8 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.version.ServerVersion;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.NoSuchElementException;
@@ -31,8 +33,8 @@ import java.util.StringJoiner;
 
 public class FieldHandle extends AHandle<Field> {
 
-  public FieldHandle(Class<?> target, FMemberPredicate<Field> predicate) throws NoSuchElementException {
-    super(target, Field.class, predicate);
+  public FieldHandle(Class<?> target, ServerVersion version, FMemberPredicate<Field> predicate) throws NoSuchElementException {
+    super(target, Field.class, version, predicate);
   }
 
   /**

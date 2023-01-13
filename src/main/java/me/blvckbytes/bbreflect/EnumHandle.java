@@ -24,6 +24,8 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.version.ServerVersion;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,10 +39,11 @@ public class EnumHandle extends ClassHandle {
   /**
    * Create a new enumeration handle on top of a enumeration class
    * @param c Class which represents an enumeration
+   * @param version Current server version
    * @throws IllegalStateException Thrown if the provided class is not an enumeration
    */
-  public EnumHandle(Class<?> c) throws IllegalStateException {
-    super(c);
+  public EnumHandle(Class<?> c, ServerVersion version) throws IllegalStateException {
+    super(c, version);
 
     Object[] constants = c.getEnumConstants();
 

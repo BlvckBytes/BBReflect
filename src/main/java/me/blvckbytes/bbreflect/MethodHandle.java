@@ -24,6 +24,7 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
@@ -36,8 +37,8 @@ public class MethodHandle extends AHandle<Method> {
 
   private final @Nullable FCallTransformer callTransformer;
 
-  protected MethodHandle(Class<?> target, @Nullable FCallTransformer callTransformer, FMemberPredicate<Method> predicate) throws NoSuchElementException {
-    super(target, Method.class, predicate);
+  protected MethodHandle(Class<?> target, ServerVersion version, @Nullable FCallTransformer callTransformer, FMemberPredicate<Method> predicate) throws NoSuchElementException {
+    super(target, Method.class, version, predicate);
     this.callTransformer = callTransformer;
   }
 
