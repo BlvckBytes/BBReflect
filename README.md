@@ -1,5 +1,7 @@
 <!-- This file is rendered by https://github.com/BlvckBytes/readme_helper -->
 
+🧨 WARNING: The API documentation is out of sync, use at your own risk!
+
 # BBReflect
 
 Reflection utility library used for finding handle dependencies by describing them through the
