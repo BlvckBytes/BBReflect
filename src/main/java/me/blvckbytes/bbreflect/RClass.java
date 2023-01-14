@@ -34,6 +34,11 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
+  GAME_PROFILE((ver, after) -> {
+    if (ver.compare(ServerVersion.V1_7_R10) <= 0)
+      return Class.forName("net.minecraft.util.com.mojang.authlib.GameProfile");
+    return Class.forName("com.mojang.authlib.GameProfile");
+  }),
   WORLD_MAP((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.saveddata.maps.WorldMap") :
     Class.forName("net.minecraft.server." + ver + ".WorldMap")
