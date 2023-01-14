@@ -26,6 +26,7 @@ package me.blvckbytes.bbreflect.version;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
 @Getter
@@ -131,5 +132,24 @@ public enum ServerVersion {
     }
 
     return null;
+  }
+
+  /**
+   * Find the server's version by looking at craftbukkit's package
+   */
+  public static ServerVersion current() {
+    String version = Bukkit.getServer().getClass().getName().split("\\.")[3];
+    String[] data = version.split("_");
+
+    ServerVersion result = ServerVersion.fromVersions(
+      Integer.parseInt(data[0].substring(1)), // remove leading v
+      Integer.parseInt(data[1]),
+      Integer.parseInt(data[2].substring(1)) // Remove leading R
+    );
+
+    if (result == null)
+      throw new IllegalStateException("Unsupported version encountered: " + version);
+
+    return result;
   }
 }

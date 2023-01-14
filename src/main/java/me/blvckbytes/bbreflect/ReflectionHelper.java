@@ -28,18 +28,17 @@ import io.netty.channel.Channel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.Getter;
+import me.blvckbytes.bbreflect.packets.IInterceptor;
+import me.blvckbytes.bbreflect.packets.InterceptorFactory;
 import me.blvckbytes.bbreflect.version.ServerVersion;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.WeakHashMap;
-import java.util.function.Supplier;
+import java.util.function.Consumer;
 
-public class ReflectionHelper {
+public class ReflectionHelper implements IReflectionHelper {
 
-  // Server version information
-  @Getter private final String versionStr;
   @Getter private final ServerVersion version;
 
   private final FieldHandle
@@ -52,9 +51,10 @@ public class ReflectionHelper {
 
   private final WeakHashMap<Player, Tuple<Object, Channel>> networkManagerAndChannelCache;
 
-  public ReflectionHelper(@Nullable Supplier<String> versionSupplier) throws Exception {
-    this.versionStr = versionSupplier == null ? findVersion() : versionSupplier.get();
-    this.version = parseVersion(this.versionStr);
+  private InterceptorFactory interceptorFactory;
+
+  public ReflectionHelper(ServerVersion version) throws Exception {
+    this.version = version;
     this.networkManagerAndChannelCache = new WeakHashMap<>();
 
     ClassHandle C_CRAFT_PLAYER = getClass(RClass.CRAFT_PLAYER);
@@ -89,6 +89,13 @@ public class ReflectionHelper {
           .withParameter(GenericFutureListener.class)
           .withParameter(GenericFutureListener[].class)
       ))
+      .orElse(() -> (
+        C_NETWORK_MANAGER.locateMethod()
+          .withVersionRange(null, ServerVersion.V1_7_R10)
+          .withTransformer(args -> new Object[] { args[0], new GenericFutureListener[] { (GenericFutureListener<?>) args[1] } })
+          .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
+          .withParameter(GenericFutureListener[].class)
+      ))
       .required();
 
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField()
@@ -104,6 +111,31 @@ public class ReflectionHelper {
     return new Tuple<>(networkManager, (Channel) channel);
   }
 
+  @Override
+  public void setupInterception(String handlerName, Consumer<IInterceptor> interceptor) throws Exception {
+    if (this.interceptorFactory != null)
+      throw new IllegalStateException("The interceptor factory has already been set up");
+
+    this.interceptorFactory = new InterceptorFactory(this, handlerName);
+    this.interceptorFactory.setupInterception(interceptor);
+  }
+
+  @Override
+  public void cleanupInterception() {
+    if (interceptorFactory == null)
+      return;
+
+    this.interceptorFactory.cleanupInterception();
+    this.interceptorFactory = null;
+  }
+
+  @Override
+  public @Nullable IInterceptor getInterceptorFor(Player p) {
+    if (this.interceptorFactory == null)
+      return null;
+    return this.interceptorFactory.getPlayerInterceptor(p);
+  }
+
   public void sendPacket(Object networkManager, Object packet, @Nullable Runnable completion) throws Exception {
     GenericFutureListener<? extends Future<? super Void>> listener = null;
 
@@ -113,6 +145,7 @@ public class ReflectionHelper {
     M_NETWORK_MANAGER__SEND.invoke(networkManager, packet, listener);
   }
 
+  @Override
   public void sendPacket(Player player, Object packet, @Nullable Runnable completion) throws Exception {
     Tuple<Object, Channel> networkManagerAndChannel = networkManagerAndChannelCache.get(player);
 
@@ -127,10 +160,12 @@ public class ReflectionHelper {
     sendPacket(networkManagerAndChannel.getA(), packet, completion);
   }
 
+  @Override
   public ClassHandle getClass(RClass rc) throws ClassNotFoundException {
     return rc.resolve(this.version);
   }
 
+  @Override
   public @Nullable ClassHandle getClassOptional(RClass rc) {
     try {
       return getClass(rc);
@@ -139,38 +174,12 @@ public class ReflectionHelper {
     }
   }
 
+  @Override
   public @Nullable EnumHandle getEnumOptional(RClass rc) {
     try {
-      return getClass(rc).asEnum();
-    } catch (ClassNotFoundException | IllegalStateException e) {
+      return rc.resolve(version).asEnum();
+    } catch (ClassNotFoundException e) {
       return null;
     }
-  }
-
-  /**
-   * Find the server's version by looking at craftbukkit's package
-   * @return Version part of the package
-   */
-  private String findVersion() {
-    return Bukkit.getServer().getClass().getName().split("\\.")[3];
-  }
-
-  /**
-   * Get the major, minor and revision version numbers the server's running on
-   * @return [major, minor, revision]
-   */
-  private ServerVersion parseVersion(String version) {
-    String[] data = version.split("_");
-
-    ServerVersion result = ServerVersion.fromVersions(
-      Integer.parseInt(data[0].substring(1)), // remove leading v
-      Integer.parseInt(data[1]),
-      Integer.parseInt(data[2].substring(1)) // Remove leading R
-    );
-
-    if (result == null)
-      throw new IllegalStateException("Unsupported version encountered: " + version);
-
-    return result;
   }
 }
