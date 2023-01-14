@@ -243,6 +243,9 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
    * @param types Types to be present
    */
   public MethodPredicateBuilder withParameters(ClassHandle... types) {
+    if (!isInVersionRange())
+      return this;
+
     for (ClassHandle t : types)
       withParameter(t.getHandle(), false, Assignability.NONE);
     return this;
@@ -255,6 +258,9 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public MethodPredicateBuilder withParameter(ClassHandle type, boolean allowBoxing, Assignability assignability) {
+    if (!isInVersionRange())
+      return this;
+
     return withParameter(type.getHandle(), allowBoxing, assignability);
   }
 
@@ -263,6 +269,9 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
    * @param type Type to be present
    */
   public MethodPredicateBuilder withParameter(ClassHandle type) {
+    if (!isInVersionRange())
+      return this;
+
     this.parameterTypes.add(new ComparableType(type.getHandle(), false, Assignability.NONE));
     return this;
   }
@@ -299,12 +308,12 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
 
   @Override
   public MethodHandle required() throws NoSuchElementException {
-    // At least a name , a return type or parameter types are required
-    if (name == null && returnType == null && parameterTypes.size() == 0)
-      throw new IncompletePredicateBuilderException();
-
     try {
       checkVersionRange();
+
+      // At least a name , a return type or parameter types are required
+      if (name == null && returnType == null && parameterTypes.size() == 0)
+        throw new IncompletePredicateBuilderException();
 
       return new MethodHandle(targetClass.getHandle(), version, callTransformer, (member, counter) -> {
 

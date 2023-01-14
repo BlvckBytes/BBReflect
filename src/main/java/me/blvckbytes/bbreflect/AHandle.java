@@ -64,7 +64,7 @@ public abstract class AHandle<T> {
 
     // The predicate matched on none of them
     if (result == null) {
-      StringBuilder message = new StringBuilder("Could not satisfy the member predicate\nAvailable members:\n");
+      StringBuilder message = new StringBuilder("Could not satisfy the member predicate within " + target + "\nAvailable members:\n");
 
       // Print all available members by walking the hierarchy again
       walkClassHierarchyFor(memberType, target, (member, counter) -> {

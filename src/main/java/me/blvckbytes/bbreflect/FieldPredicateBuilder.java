@@ -199,17 +199,17 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldP
   @Override
   public FieldPredicateBuilder orElse(Supplier<FieldPredicateBuilder> builder) {
     fallbacks.add(builder.get());
-    return null;
+    return this;
   }
 
   @Override
   public FieldHandle required() throws NoSuchElementException {
-    // At least a name or a type are required
-    if (name == null && type == null)
-      throw new IncompletePredicateBuilderException();
-
     try {
       checkVersionRange();
+
+      // At least a name or a type are required
+      if (name == null && type == null)
+        throw new IncompletePredicateBuilderException();
 
       return new FieldHandle(targetClass.getHandle(), version, (member, counter) -> {
 
