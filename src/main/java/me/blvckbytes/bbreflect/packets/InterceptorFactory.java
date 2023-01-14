@@ -142,9 +142,7 @@ public class InterceptorFactory implements IPacketOperator {
           @Override
           protected void initChannel(Channel channel) {
 
-            // Add this initializer as the first item in the channel to be the
-            // first receiver which gets a hold of it
-            channel.pipeline().addFirst(new ChannelInitializer<Channel>() {
+            channel.pipeline().addLast(new ChannelInitializer<Channel>() {
 
               @Override
               protected void initChannel(Channel channel) {
