@@ -117,7 +117,7 @@ public class ReflectionHelper implements IReflectionHelper {
       throw new IllegalStateException("The interceptor factory has already been set up");
 
     this.interceptorFactory = new InterceptorFactory(this, handlerName);
-    this.interceptorFactory.setupInterception(interceptor);
+    this.interceptorFactory.setupInterception(interceptor::accept);
   }
 
   @Override

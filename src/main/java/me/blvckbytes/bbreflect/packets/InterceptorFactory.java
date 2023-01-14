@@ -24,9 +24,9 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import com.mojang.authlib.GameProfile;
 import io.netty.channel.*;
 import me.blvckbytes.bbreflect.*;
+import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +41,7 @@ public class InterceptorFactory implements IPacketOperator {
   private final String handlerName;
 
   private final ClassHandle C_PACKET_LOGIN;
-  private final MethodHandle M_CRAFT_PLAYER__HANDLE;
+  private final MethodHandle M_CRAFT_PLAYER__HANDLE, M_GAME_PROFILE__GET_NAME;
   private final @Nullable FieldHandle F_PACKET_LOGIN__GAME_PROFILE;
   private @Nullable FieldHandle F_PACKET_LOGIN__NAME;
 
@@ -68,6 +68,7 @@ public class InterceptorFactory implements IPacketOperator {
     ClassHandle C_CRAFT_SERVER = helper.getClass(RClass.CRAFT_SERVER);
     ClassHandle C_MINECRAFT_SERVER = helper.getClass(RClass.MINECRAFT_SERVER);
     ClassHandle C_SERVER_CONNECTION = helper.getClass(RClass.SERVER_CONNECTION);
+    ClassHandle C_GAME_PROFILE = helper.getClass(RClass.GAME_PROFILE);
 
     C_PACKET_LOGIN = helper.getClass(RClass.PACKET_I_LOGIN);
 
@@ -76,13 +77,34 @@ public class InterceptorFactory implements IPacketOperator {
       .withType(C_MINECRAFT_SERVER, false, Assignability.TYPE_TO_TARGET)
       .required();
 
-    F_MINECRAFT_SERVER__SERVER_CONNECTION = C_MINECRAFT_SERVER.locateField().withType(C_SERVER_CONNECTION).required();
-    F_SERVER_CONNECTION__CHANNEL_FUTURES = C_SERVER_CONNECTION.locateField().withType(List.class).withGeneric(ChannelFuture.class).required();
+    F_MINECRAFT_SERVER__SERVER_CONNECTION = C_MINECRAFT_SERVER.locateField()
+      .withType(C_SERVER_CONNECTION)
+      .required();
 
-    F_PACKET_LOGIN__GAME_PROFILE = C_PACKET_LOGIN.locateField().withType(GameProfile.class).optional();
+    F_SERVER_CONNECTION__CHANNEL_FUTURES = C_SERVER_CONNECTION.locateField()
+      .withType(List.class)
+      .withGeneric(ChannelFuture.class)
+      .orElse(() -> (
+        // 1.7 has no generic type parameters, so just take the "e" list
+        // We could also just take the first (skip 0), but sequence order is not guaranteed...
+        // FIXME: Think about how to improve this
+        C_SERVER_CONNECTION.locateField()
+          .withVersionRange(null, ServerVersion.V1_7_R10)
+          .withName("e")
+          .withType(List.class)
+      ))
+      .required();
 
-    if (F_PACKET_LOGIN__GAME_PROFILE == null)
-      F_PACKET_LOGIN__NAME = C_PACKET_LOGIN.locateField().withType(String.class).required();
+    // FIXME: Make use of the new transformers in stead of having this double-mess
+    F_PACKET_LOGIN__GAME_PROFILE = C_PACKET_LOGIN.locateField()
+      .withType(C_GAME_PROFILE)
+      .optional();
+
+    if (F_PACKET_LOGIN__GAME_PROFILE == null) {
+      F_PACKET_LOGIN__NAME = C_PACKET_LOGIN.locateField()
+        .withType(String.class)
+        .required();
+    }
 
     // CraftPlayer->EntityPlayer (handle)
     M_CRAFT_PLAYER__HANDLE = C_CRAFT_PLAYER.locateMethod().withReturnType(C_ENTITY_PLAYER).required();
@@ -95,6 +117,10 @@ public class InterceptorFactory implements IPacketOperator {
 
     // NetworkManager -> Channel
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField().withType(Channel.class).required();
+
+    M_GAME_PROFILE__GET_NAME = C_GAME_PROFILE.locateMethod()
+      .withName("getName")
+      .required();
   }
 
   /**
@@ -287,7 +313,7 @@ public class InterceptorFactory implements IPacketOperator {
     String name;
 
     if (F_PACKET_LOGIN__GAME_PROFILE != null)
-      name = ((GameProfile) F_PACKET_LOGIN__GAME_PROFILE.get(packet)).getName();
+      name = (String) M_GAME_PROFILE__GET_NAME.invoke(F_PACKET_LOGIN__GAME_PROFILE.get(packet));
 
     else {
       assert F_PACKET_LOGIN__NAME != null;
