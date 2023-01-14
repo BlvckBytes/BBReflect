@@ -32,7 +32,7 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class Interceptor extends ChannelDuplexHandler {
+public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   // Don't keep closed channels from being garbage-collected
   private final WeakReference<Channel> channel;
@@ -160,11 +160,7 @@ public class Interceptor extends ChannelDuplexHandler {
     this.handlerName = null;
   }
 
-  /**
-   * Used to send a packet using a network manager instance
-   * @param packet Packet instance to send
-   * @param completion Optional completion callback, nullable
-   */
+  @Override
   public void sendPacket(Object packet, @Nullable Runnable completion) throws Exception {
     if (networkManager == null)
       throw new IllegalStateException("Could not find the network manager");
