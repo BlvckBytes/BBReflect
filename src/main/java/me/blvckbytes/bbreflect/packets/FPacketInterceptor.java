@@ -24,7 +24,6 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import io.netty.channel.Channel;
 import org.jetbrains.annotations.Nullable;
 
 @FunctionalInterface
@@ -37,6 +36,6 @@ public interface FPacketInterceptor {
    * @param channel Intercepted channel
    * @return The received (and possibly modified) packet or null to drop the packet
    */
-  @Nullable Object intercept(@Nullable String senderName, Object packet, Channel channel) throws Exception;
+  @Nullable Object intercept(@Nullable String senderName, Object packet, Object channel) throws Exception;
 
 }
