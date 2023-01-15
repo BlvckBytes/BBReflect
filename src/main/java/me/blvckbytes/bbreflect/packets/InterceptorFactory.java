@@ -41,13 +41,11 @@ public class InterceptorFactory implements IPacketOperator {
   private final String handlerName;
 
   private final ClassHandle C_PACKET_LOGIN;
-  private final MethodHandle M_CRAFT_PLAYER__HANDLE, M_GAME_PROFILE__GET_NAME;
-  private final @Nullable FieldHandle F_PACKET_LOGIN__GAME_PROFILE;
-  private @Nullable FieldHandle F_PACKET_LOGIN__NAME;
+  private final MethodHandle M_CRAFT_PLAYER__HANDLE;
 
   private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION,
     F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER,
-    F_NETWORK_MANAGER__CHANNEL;
+    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
   private final WeakHashMap<String, Interceptor> interceptorByPlayerName;
@@ -95,16 +93,20 @@ public class InterceptorFactory implements IPacketOperator {
       ))
       .required();
 
-    // FIXME: Make use of the new transformers in stead of having this double-mess
-    F_PACKET_LOGIN__GAME_PROFILE = C_PACKET_LOGIN.locateField()
-      .withType(C_GAME_PROFILE)
-      .optional();
+    MethodHandle M_GAME_PROFILE__GET_NAME = C_GAME_PROFILE.locateMethod()
+      .withName("getName")
+      .required();
 
-    if (F_PACKET_LOGIN__GAME_PROFILE == null) {
-      F_PACKET_LOGIN__NAME = C_PACKET_LOGIN.locateField()
-        .withType(String.class)
-        .required();
-    }
+    F_PACKET_LOGIN__NAME = C_PACKET_LOGIN.locateField()
+      .withVersionRange(null, ServerVersion.V1_18_R2)
+      .withType(C_GAME_PROFILE)
+      .withResponseTransformer(M_GAME_PROFILE__GET_NAME::invoke, M_GAME_PROFILE__GET_NAME)
+      .orElse(() -> (
+        C_PACKET_LOGIN.locateField()
+          .withVersionRange(ServerVersion.V1_19_R0, null)
+          .withType(String.class)
+      ))
+      .required();
 
     // CraftPlayer->EntityPlayer (handle)
     M_CRAFT_PLAYER__HANDLE = C_CRAFT_PLAYER.locateMethod().withReturnType(C_ENTITY_PLAYER).required();
@@ -117,10 +119,6 @@ public class InterceptorFactory implements IPacketOperator {
 
     // NetworkManager -> Channel
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField().withType(Channel.class).required();
-
-    M_GAME_PROFILE__GET_NAME = C_GAME_PROFILE.locateMethod()
-      .withName("getName")
-      .required();
   }
 
   /**
@@ -308,20 +306,7 @@ public class InterceptorFactory implements IPacketOperator {
     if (!C_PACKET_LOGIN.isInstance(packet))
       return null;
 
-    String name;
-
-    if (F_PACKET_LOGIN__GAME_PROFILE != null)
-      name = (String) M_GAME_PROFILE__GET_NAME.invoke(F_PACKET_LOGIN__GAME_PROFILE.get(packet));
-
-    else {
-      assert F_PACKET_LOGIN__NAME != null;
-      name = (String) F_PACKET_LOGIN__NAME.get(packet);
-    }
-
-    if (name != null && !name.isEmpty())
-      interceptorByPlayerName.put(name, requester);
-
-    return name;
+    return (String) F_PACKET_LOGIN__NAME.get(packet);
   }
 
   @Override
