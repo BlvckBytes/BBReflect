@@ -78,9 +78,36 @@ public class ReflectionHelper implements IReflectionHelper {
       .withAllowSuperclass(true)
       .required();
 
+    ClassHandle C_PACKET_SEND_LISTENER = getClassOptional(RClass.PACKET_SEND_LISTENER);
+    MethodHandle C_PACKET_SEND_LISTENER__FROM_RUNNABLE = C_PACKET_SEND_LISTENER == null ? null : C_PACKET_SEND_LISTENER.locateMethod()
+      .withPublic(true)
+      .withStatic(true)
+      .withParameters(Runnable.class)
+      .withReturnType(C_PACKET_SEND_LISTENER)
+      .optional();
+
+    /*
+      method(
+        [0] Packet packet
+        [1] Runnable complete
+      )
+     */
     M_NETWORK_MANAGER__SEND = C_NETWORK_MANAGER.locateMethod()
+      .withVersionRange(ServerVersion.V1_19_R1, null)
       .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
-      .withParameter(GenericFutureListener.class)
+      .withParameter(C_PACKET_SEND_LISTENER, false, Assignability.TARGET_TO_TYPE)
+      .withCallTransformer(args -> {
+        assert C_PACKET_SEND_LISTENER__FROM_RUNNABLE != null;
+        return new Object[] {
+          args[0], C_PACKET_SEND_LISTENER__FROM_RUNNABLE.invoke(args[1])
+        };
+      }, C_PACKET_SEND_LISTENER__FROM_RUNNABLE)
+      .orElse(() -> (
+        C_NETWORK_MANAGER.locateMethod()
+          .withVersionRange(null, ServerVersion.V1_19_R0)
+          .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
+          .withParameter(GenericFutureListener.class)
+        ))
       .orElse(() -> (
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_12_R2)

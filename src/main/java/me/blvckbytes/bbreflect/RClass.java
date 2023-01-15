@@ -34,6 +34,11 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
+  PACKET_SEND_LISTENER((ver, after) -> {
+    if (ver.compare(ServerVersion.V1_19_R1) >= 0)
+      return Class.forName("net.minecraft.network.PacketSendListener");
+    return null;
+  }),
   GAME_PROFILE((ver, after) -> {
     if (ver.compare(ServerVersion.V1_7_R10) <= 0)
       return Class.forName("net.minecraft.util.com.mojang.authlib.GameProfile");
