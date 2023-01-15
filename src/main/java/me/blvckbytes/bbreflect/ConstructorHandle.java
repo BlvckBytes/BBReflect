@@ -28,7 +28,6 @@ import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.NoSuchElementException;
 import java.util.StringJoiner;

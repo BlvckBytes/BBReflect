@@ -35,15 +35,18 @@ import java.util.StringJoiner;
 public class FieldHandle extends AHandle<Field> {
 
   private final @Nullable FResponseTransformer responseTransformer;
+  private final @Nullable FValueTransformer valueTransformer;
 
   public FieldHandle(
     Class<?> target, ServerVersion version,
     @Nullable FResponseTransformer responseTransformer,
+    @Nullable FValueTransformer valueTransformer,
     FMemberPredicate<Field> predicate
   ) throws NoSuchElementException {
     super(target, Field.class, version, predicate);
 
     this.responseTransformer = responseTransformer;
+    this.valueTransformer = valueTransformer;
   }
 
   /**
@@ -51,7 +54,9 @@ public class FieldHandle extends AHandle<Field> {
    * @param o Target object to modify
    * @param v Field value to set
    */
-  public void set(Object o, Object v) throws IllegalAccessException {
+  public void set(Object o, Object v) throws Exception {
+    if (valueTransformer != null)
+      v = valueTransformer.apply(v);
     this.handle.set(o, v);
   }
 

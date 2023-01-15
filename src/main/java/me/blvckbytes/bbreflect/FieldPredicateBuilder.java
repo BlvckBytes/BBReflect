@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldPredicateBuilder> {
 
   private @Nullable FResponseTransformer responseTransformer;
+  private @Nullable FValueTransformer valueTransformer;
 
   private @Nullable Boolean isStatic;
   private @Nullable Boolean isPublic;
@@ -69,6 +70,24 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldP
    */
   public FieldPredicateBuilder withResponseTransformer(@Nullable FResponseTransformer responseTransformer, AHandle<?>... dependencies) {
     this.responseTransformer = responseTransformer;
+
+    if (isInVersionRange()) {
+      for (AHandle<?> handle : dependencies) {
+        if (handle == null)
+          throw new IllegalStateException("One of the transformers dependencies is missing");
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Set the value transformer which will be invoked before setting the field's value
+   * @param valueTransformer Transformer to set
+   * @param dependencies List of handles which this transformer depends on and which have to be present
+   */
+  public FieldPredicateBuilder withValueTransformer(@Nullable FValueTransformer valueTransformer, AHandle<?>... dependencies) {
+    this.valueTransformer = valueTransformer;
 
     if (isInVersionRange()) {
       for (AHandle<?> handle : dependencies) {
@@ -233,7 +252,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldP
       if (name == null && type == null)
         throw new IncompletePredicateBuilderException();
 
-      return new FieldHandle(targetClass.getHandle(), version, responseTransformer, (member, counter) -> {
+      return new FieldHandle(targetClass.getHandle(), version, responseTransformer, valueTransformer, (member, counter) -> {
 
         // Is inside of another class but superclass walking is disabled
         if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())
