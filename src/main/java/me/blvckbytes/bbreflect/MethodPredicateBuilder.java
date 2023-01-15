@@ -386,7 +386,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
 
           // Type parameters need to match in sequence
           for (int i = 0; i < numGenerics; i++) {
-            if (!returnGenerics.get(i).matches((Class<?>) types[i]))
+            if (!returnGenerics.get(i).matches(unwrapType(types[i])))
               return false;
           }
         }
@@ -400,5 +400,20 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
     } catch (NoSuchElementException e) {
       return invokeFallbacks(e);
     }
+  }
+
+  /**
+   * Attempts to unwrap a given type to it's raw type class
+   * @param type Type to unwrap
+   * @return Unwrapped type
+   */
+  private Class<?> unwrapType(Type type) {
+    if (type instanceof Class)
+      return (Class<?>) type;
+
+    if (type instanceof ParameterizedType)
+      return unwrapType(((ParameterizedType) type).getRawType());
+
+    throw new IllegalStateException("Cannot unwrap type of class=" + type.getClass());
   }
 }

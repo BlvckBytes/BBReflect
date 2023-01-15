@@ -35,6 +35,7 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
 
   private @Nullable Boolean isPublic;
   private @Nullable Boolean isStatic;
+  private @Nullable String name;
   private int skip;
 
   /**
@@ -44,6 +45,17 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
    */
   public ClassPredicateBuilder(ClassHandle targetClass, ServerVersion version) {
     super(targetClass, version);
+  }
+
+  //////////////////////////////////// Name /////////////////////////////////////
+
+  /**
+   * Define the target class' name
+   * @param name Class name, null means wildcard
+   */
+  public ClassPredicateBuilder withName(@Nullable String name) {
+    this.name = name;
+    return this;
   }
 
   ////////////////////////////////// Modifiers //////////////////////////////////
@@ -100,6 +112,10 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
         if (isPublic != null && Modifier.isPublic(c.getModifiers()) != isPublic)
           return false;
 
+        // Name mismatch
+        if (this.name != null && !isClassNameEqualTo(c, name))
+          return false;
+
         // Everything matches, while skip > matchCounter, count up
         if (skip > mc)
           return null;
@@ -109,5 +125,15 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
     } catch (NoSuchElementException e) {
       return invokeFallbacks(e);
     }
+  }
+
+  private boolean isClassNameEqualTo(Class<?> c, String name) {
+    String cName = c.getName();
+
+    int lastDollar = cName.lastIndexOf('$');
+    if (lastDollar >= 0)
+      cName = cName.substring(lastDollar + 1);
+
+    return cName.equals(name);
   }
 }
