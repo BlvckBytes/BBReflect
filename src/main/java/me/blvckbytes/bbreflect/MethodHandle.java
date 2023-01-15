@@ -36,10 +36,17 @@ import java.util.StringJoiner;
 public class MethodHandle extends AHandle<Method> {
 
   private final @Nullable FCallTransformer callTransformer;
+  private final @Nullable FResponseTransformer responseTransformer;
 
-  protected MethodHandle(Class<?> target, ServerVersion version, @Nullable FCallTransformer callTransformer, FMemberPredicate<Method> predicate) throws NoSuchElementException {
+  protected MethodHandle(
+    Class<?> target, ServerVersion version,
+    @Nullable FCallTransformer callTransformer, @Nullable FResponseTransformer responseTransformer,
+    FMemberPredicate<Method> predicate
+  ) throws NoSuchElementException {
     super(target, Method.class, version, predicate);
+
     this.callTransformer = callTransformer;
+    this.responseTransformer = responseTransformer;
   }
 
   /**
@@ -51,7 +58,13 @@ public class MethodHandle extends AHandle<Method> {
   public Object invoke(Object o, Object... args) throws Exception {
     if (callTransformer != null)
       args = callTransformer.apply(args);
-    return handle.invoke(o, args);
+
+    Object response = handle.invoke(o, args);
+
+    if (responseTransformer != null)
+      response = responseTransformer.apply(response);
+
+    return response;
   }
 
   @Override

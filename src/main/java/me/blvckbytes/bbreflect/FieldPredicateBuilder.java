@@ -37,6 +37,8 @@ import java.util.function.Supplier;
 
 public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldPredicateBuilder> {
 
+  private @Nullable FResponseTransformer responseTransformer;
+
   private @Nullable Boolean isStatic;
   private @Nullable Boolean isPublic;
   private @Nullable String name;
@@ -56,6 +58,26 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldP
     this.isStatic = false;
     this.allowSuperclass = false;
     this.genericTypes = new ArrayList<>();
+  }
+
+  ////////////////////////////////// Transformer /////////////////////////////////
+
+  /**
+   * Set the response transformer which will be invoked before responding with the function's result
+   * @param responseTransformer Transformer to set
+   * @param dependencies List of handles which this transformer depends on and which have to be present
+   */
+  public FieldPredicateBuilder withResponseTransformer(@Nullable FResponseTransformer responseTransformer, AHandle<?>... dependencies) {
+    this.responseTransformer = responseTransformer;
+
+    if (isInVersionRange()) {
+      for (AHandle<?> handle : dependencies) {
+        if (handle == null)
+          throw new IllegalStateException("One of the transformers dependencies is missing");
+      }
+    }
+
+    return this;
   }
 
   ////////////////////////////////// Modifiers //////////////////////////////////
@@ -211,7 +233,7 @@ public class FieldPredicateBuilder extends APredicateBuilder<FieldHandle, FieldP
       if (name == null && type == null)
         throw new IncompletePredicateBuilderException();
 
-      return new FieldHandle(targetClass.getHandle(), version, (member, counter) -> {
+      return new FieldHandle(targetClass.getHandle(), version, responseTransformer, (member, counter) -> {
 
         // Is inside of another class but superclass walking is disabled
         if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())

@@ -56,11 +56,11 @@ public class ConstructorPredicateBuilder extends APredicateBuilder<ConstructorHa
   /**
    * Set the call transformer which will be invoked before relaying
    * the call to the handle's wrapped member
-   * @param transformer Transformer to set
+   * @param callTransformer Transformer to set
    * @param dependencies List of handles which this transformer depends on and which have to be present
    */
-  public ConstructorPredicateBuilder withTransformer(@Nullable FCallTransformer transformer, AHandle<?>... dependencies) {
-    this.callTransformer = transformer;
+  public ConstructorPredicateBuilder withCallTransformer(@Nullable FCallTransformer callTransformer, AHandle<?>... dependencies) {
+    this.callTransformer = callTransformer;
 
     if (isInVersionRange()) {
       for (AHandle<?> handle : dependencies) {

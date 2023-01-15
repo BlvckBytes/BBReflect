@@ -38,6 +38,8 @@ import java.util.function.Supplier;
 public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, MethodPredicateBuilder> {
 
   private @Nullable FCallTransformer callTransformer;
+  private @Nullable FResponseTransformer responseTransformer;
+
   private @Nullable Boolean isStatic;
   private @Nullable Boolean isPublic;
   private @Nullable Boolean isAbstract;
@@ -67,11 +69,29 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
   /**
    * Set the call transformer which will be invoked before relaying
    * the call to the handle's wrapped member
-   * @param transformer Transformer to set
+   * @param callTransformer Transformer to set
    * @param dependencies List of handles which this transformer depends on and which have to be present
    */
-  public MethodPredicateBuilder withTransformer(@Nullable FCallTransformer transformer, AHandle<?>... dependencies) {
-    this.callTransformer = transformer;
+  public MethodPredicateBuilder withCallTransformer(@Nullable FCallTransformer callTransformer, AHandle<?>... dependencies) {
+    this.callTransformer = callTransformer;
+
+    if (isInVersionRange()) {
+      for (AHandle<?> handle : dependencies) {
+        if (handle == null)
+          throw new IllegalStateException("One of the transformers dependencies is missing");
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Set the response transformer which will be invoked before responding with the function's result
+   * @param responseTransformer Transformer to set
+   * @param dependencies List of handles which this transformer depends on and which have to be present
+   */
+  public MethodPredicateBuilder withResponseTransformer(@Nullable FResponseTransformer responseTransformer, AHandle<?>... dependencies) {
+    this.responseTransformer = responseTransformer;
 
     if (isInVersionRange()) {
       for (AHandle<?> handle : dependencies) {
@@ -315,7 +335,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
       if (name == null && returnType == null && parameterTypes.size() == 0)
         throw new IncompletePredicateBuilderException();
 
-      return new MethodHandle(targetClass.getHandle(), version, callTransformer, (member, counter) -> {
+      return new MethodHandle(targetClass.getHandle(), version, callTransformer, responseTransformer, (member, counter) -> {
 
         // Is inside of another class but superclass walking is disabled
         if (!allowSuperclass && member.getDeclaringClass() != targetClass.getHandle())

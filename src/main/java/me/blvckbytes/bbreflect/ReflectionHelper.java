@@ -84,7 +84,7 @@ public class ReflectionHelper implements IReflectionHelper {
       .orElse(() -> (
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_12_R2)
-          .withTransformer(args -> new Object[] { args[0], args[1], new GenericFutureListener[0] })
+          .withCallTransformer(args -> new Object[] { args[0], args[1], new GenericFutureListener[0] })
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener.class)
           .withParameter(GenericFutureListener[].class)
@@ -92,7 +92,7 @@ public class ReflectionHelper implements IReflectionHelper {
       .orElse(() -> (
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_7_R10)
-          .withTransformer(args -> new Object[] { args[0], new GenericFutureListener[] { (GenericFutureListener<?>) args[1] } })
+          .withCallTransformer(args -> new Object[] { args[0], new GenericFutureListener[] { (GenericFutureListener<?>) args[1] } })
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener[].class)
       ))

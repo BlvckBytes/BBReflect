@@ -25,6 +25,7 @@
 package me.blvckbytes.bbreflect;
 
 import me.blvckbytes.bbreflect.version.ServerVersion;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -33,8 +34,16 @@ import java.util.StringJoiner;
 
 public class FieldHandle extends AHandle<Field> {
 
-  public FieldHandle(Class<?> target, ServerVersion version, FMemberPredicate<Field> predicate) throws NoSuchElementException {
+  private final @Nullable FResponseTransformer responseTransformer;
+
+  public FieldHandle(
+    Class<?> target, ServerVersion version,
+    @Nullable FResponseTransformer responseTransformer,
+    FMemberPredicate<Field> predicate
+  ) throws NoSuchElementException {
     super(target, Field.class, version, predicate);
+
+    this.responseTransformer = responseTransformer;
   }
 
   /**
@@ -51,8 +60,13 @@ public class FieldHandle extends AHandle<Field> {
    * @param o Target object to read from
    * @return Field value
    */
-  public Object get(Object o) throws IllegalAccessException {
-    return this.handle.get(o);
+  public Object get(Object o) throws Exception {
+    Object result = this.handle.get(o);
+
+    if (responseTransformer != null)
+      result = responseTransformer.apply(result);
+
+    return result;
   }
 
   @Override
