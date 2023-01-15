@@ -420,7 +420,7 @@ public enum RClass {
     Class<?> c = resolve.apply(version, version.getMinor() >= 17);
 
     if (c == null)
-      throw new IllegalStateException("Could not resolve the target class");
+      throw new ClassNotFoundException("Could not resolve the target class");
 
     res = new ClassHandle(c, version);
     cache.put(this, res);

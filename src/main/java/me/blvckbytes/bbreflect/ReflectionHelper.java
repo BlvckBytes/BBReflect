@@ -25,7 +25,6 @@
 package me.blvckbytes.bbreflect;
 
 import io.netty.channel.Channel;
-import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.Getter;
 import me.blvckbytes.bbreflect.packets.IInterceptor;
@@ -99,7 +98,7 @@ public class ReflectionHelper implements IReflectionHelper {
       .withCallTransformer(args -> {
         assert C_PACKET_SEND_LISTENER__FROM_RUNNABLE != null;
         return new Object[] {
-          args[0], C_PACKET_SEND_LISTENER__FROM_RUNNABLE.invoke(args[1])
+          args[0], C_PACKET_SEND_LISTENER__FROM_RUNNABLE.invoke(null, args[1])
         };
       }, C_PACKET_SEND_LISTENER__FROM_RUNNABLE)
       .orElse(() -> (
@@ -111,7 +110,7 @@ public class ReflectionHelper implements IReflectionHelper {
       .orElse(() -> (
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_12_R2)
-          .withCallTransformer(args -> new Object[] { args[0], args[1], new GenericFutureListener[0] })
+          .withCallTransformer(args -> new Object[] { args[0], makeFutureListener((Runnable) args[1]), new GenericFutureListener[0] })
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener.class)
           .withParameter(GenericFutureListener[].class)
@@ -119,7 +118,7 @@ public class ReflectionHelper implements IReflectionHelper {
       .orElse(() -> (
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_7_R10)
-          .withCallTransformer(args -> new Object[] { args[0], new GenericFutureListener[] { (GenericFutureListener<?>) args[1] } })
+          .withCallTransformer(args -> new Object[] { args[0], new GenericFutureListener[] { makeFutureListener((Runnable) args[1]) } })
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener[].class)
       ))
@@ -128,6 +127,12 @@ public class ReflectionHelper implements IReflectionHelper {
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField()
       .withType(Channel.class)
       .required();
+  }
+
+  private @Nullable GenericFutureListener<?> makeFutureListener(@Nullable Runnable runnable) {
+    if (runnable == null)
+      return null;
+    return future -> runnable.run();
   }
 
   private Tuple<Object, Channel> findNetworkManagerAndChannel(Player player) throws Exception {
@@ -164,12 +169,9 @@ public class ReflectionHelper implements IReflectionHelper {
   }
 
   public void sendPacket(Object networkManager, Object packet, @Nullable Runnable completion) throws Exception {
-    GenericFutureListener<? extends Future<? super Void>> listener = null;
-
-    if (completion != null)
-      listener = v -> completion.run();
-
-    M_NETWORK_MANAGER__SEND.invoke(networkManager, packet, listener);
+    if (completion == null)
+      completion = () -> {};
+    M_NETWORK_MANAGER__SEND.invoke(networkManager, packet, completion);
   }
 
   @Override

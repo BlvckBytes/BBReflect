@@ -24,7 +24,9 @@
 
 package me.blvckbytes.bbreflect.patching;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.function.Function;
 
