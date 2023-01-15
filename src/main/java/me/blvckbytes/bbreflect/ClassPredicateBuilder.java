@@ -28,6 +28,9 @@ import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
@@ -36,6 +39,7 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
   private @Nullable Boolean isPublic;
   private @Nullable Boolean isStatic;
   private @Nullable String name;
+  private final List<String> skipNames;
   private int skip;
 
   /**
@@ -45,6 +49,8 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
    */
   public ClassPredicateBuilder(ClassHandle targetClass, ServerVersion version) {
     super(targetClass, version);
+
+    this.skipNames = new ArrayList<>();
   }
 
   //////////////////////////////////// Name /////////////////////////////////////
@@ -55,6 +61,15 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
    */
   public ClassPredicateBuilder withName(@Nullable String name) {
     this.name = name;
+    return this;
+  }
+
+  /**
+   * Define a list of class names to skip
+   * @param names Class names to skip
+   */
+  public ClassPredicateBuilder skipNames(String... names) {
+    this.skipNames.addAll(Arrays.asList(names));
     return this;
   }
 
@@ -114,6 +129,10 @@ public class ClassPredicateBuilder extends APredicateBuilder<ClassHandle, ClassP
 
         // Name mismatch
         if (this.name != null && !isClassNameEqualTo(c, name))
+          return false;
+
+        // Skip this name
+        if (this.skipNames.stream().anyMatch(skip -> isClassNameEqualTo(c, skip)))
           return false;
 
         // Everything matches, while skip > matchCounter, count up
