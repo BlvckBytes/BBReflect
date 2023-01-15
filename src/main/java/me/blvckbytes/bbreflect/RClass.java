@@ -26,6 +26,7 @@ package me.blvckbytes.bbreflect;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 
 import java.util.HashMap;

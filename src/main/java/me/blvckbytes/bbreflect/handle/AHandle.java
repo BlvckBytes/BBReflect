@@ -22,9 +22,10 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle;
 
 import lombok.Getter;
+import me.blvckbytes.bbreflect.handle.predicate.FMemberPredicate;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 

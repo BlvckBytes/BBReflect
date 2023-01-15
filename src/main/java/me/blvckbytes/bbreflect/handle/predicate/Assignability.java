@@ -22,14 +22,32 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle.predicate;
 
-@FunctionalInterface
-public interface FCallTransformer {
+public enum Assignability {
 
-  /**
-   * Rearranges a call so that it can match the signature of it's representative member
+  /*
+    Definition of assignability:
+
+    // Let there be two types
+    TypeA fieldA;
+    TypeB fieldB;
+
+    // If fieldB can be >assigned to< fieldA, TypeB is assignable to TypeA
+    fieldA = fieldB;
+
+    // If fieldA can be >assigned to< fieldB, TypeA is assignable to TypeB
+    fieldB = fieldA;
    */
-  Object[] apply(Object[] arguments) throws Exception;
+
+  // Can the target's (searched) type be assigned to the type's type?
+  TARGET_TO_TYPE,
+
+  // Can the type's type be assigned to the target's (searched) type?
+  TYPE_TO_TARGET,
+
+  // Assignability is to be ignored
+  NONE
+  ;
 
 }

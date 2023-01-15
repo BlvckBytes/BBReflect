@@ -26,6 +26,10 @@ package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
 import me.blvckbytes.bbreflect.*;
+import me.blvckbytes.bbreflect.handle.ClassHandle;
+import me.blvckbytes.bbreflect.handle.FieldHandle;
+import me.blvckbytes.bbreflect.handle.MethodHandle;
+import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

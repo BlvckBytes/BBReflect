@@ -22,8 +22,13 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle;
 
+import me.blvckbytes.bbreflect.handle.predicate.FMemberPredicate;
+import me.blvckbytes.bbreflect.handle.predicate.FieldPredicateBuilder;
+import me.blvckbytes.bbreflect.handle.predicate.MethodPredicateBuilder;
+import me.blvckbytes.bbreflect.handle.predicate.ClassPredicateBuilder;
+import me.blvckbytes.bbreflect.handle.predicate.ConstructorPredicateBuilder;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 
 import java.lang.reflect.Modifier;
@@ -50,7 +55,7 @@ public class ClassHandle extends AHandle<Class> {
     super(target, Class.class, version, predicate);
   }
 
-  protected ClassHandle(Class handle, ServerVersion version) {
+  public ClassHandle(Class handle, ServerVersion version) {
     super(handle, Class.class, version);
   }
 

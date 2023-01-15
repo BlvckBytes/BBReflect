@@ -24,6 +24,8 @@
 
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.handle.ClassHandle;
+import me.blvckbytes.bbreflect.handle.EnumHandle;
 import me.blvckbytes.bbreflect.packets.IInterceptor;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.entity.Player;

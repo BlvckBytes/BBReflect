@@ -22,11 +22,10 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle;
 
-@FunctionalInterface
-public interface FMemberPredicate<T> {
-
-  Boolean matches(T member, int counter);
-
+public enum HierarchyWalkDecision {
+  CONTINUE,
+  BREAK,
+  SKIP
 }

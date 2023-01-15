@@ -22,16 +22,16 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle.transformer;
 
 import org.jetbrains.annotations.Nullable;
 
 @FunctionalInterface
-public interface FResponseTransformer {
+public interface FValueTransformer {
 
   /**
-   * Transforms the response from it's representative member to - for example - conform to a unified interface
+   * Transforms the input to it's representative member to - for example - conform to a unified interface
    */
-  @Nullable Object apply(@Nullable Object response) throws Exception;
+  @Nullable Object apply(@Nullable Object input) throws Exception;
 
 }

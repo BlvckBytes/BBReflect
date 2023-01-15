@@ -41,6 +41,10 @@ A class handle represents a `Class<?>` and is the main entry-point when querying
 ```java
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.handle.AHandle;
+import me.blvckbytes.bbreflect.handle.EnumHandle;
+import me.blvckbytes.bbreflect.handle.predicate.*;
+
 @SuppressWarnings("rawtypes")
 public class ClassHandle extends AHandle<Class> {
 
@@ -163,6 +167,8 @@ aims to offer access to enumeration constants.
 ```java
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.handle.ClassHandle;
+
 public class EnumHandle extends ClassHandle {
 
   // TODO: Check against enum copies if they match the number of entries, else throw
@@ -229,6 +235,10 @@ A method handle represents a `Method` and is used to perform method invocations.
 ```java
 package me.blvckbytes.bbreflect;
 
+import me.blvckbytes.bbreflect.handle.AHandle;
+import me.blvckbytes.bbreflect.handle.predicate.FMemberPredicate;
+import me.blvckbytes.bbreflect.handle.transformer.FCallTransformer;
+
 public class MethodHandle extends AHandle<Method> {
 
   private final @Nullable FCallTransformer callTransformer;
@@ -282,6 +292,9 @@ A field handle represents a `Field` and is used to perform set- and get operatio
 
 ```java
 package me.blvckbytes.bbreflect;
+
+import me.blvckbytes.bbreflect.handle.AHandle;
+import me.blvckbytes.bbreflect.handle.predicate.FMemberPredicate;
 
 public class FieldHandle extends AHandle<Field> {
 

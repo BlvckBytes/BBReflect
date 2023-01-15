@@ -22,8 +22,13 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle.predicate;
 
+import me.blvckbytes.bbreflect.handle.AHandle;
+import me.blvckbytes.bbreflect.handle.ClassHandle;
+import me.blvckbytes.bbreflect.handle.MethodHandle;
+import me.blvckbytes.bbreflect.handle.transformer.FCallTransformer;
+import me.blvckbytes.bbreflect.handle.transformer.FResponseTransformer;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 

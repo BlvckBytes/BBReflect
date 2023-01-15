@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle;
 
 import me.blvckbytes.bbreflect.version.ServerVersion;
 

@@ -22,9 +22,10 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle.predicate;
 
 import lombok.Getter;
+import me.blvckbytes.bbreflect.Primitives;
 
 @Getter
 public class ComparableType {

@@ -22,65 +22,68 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle;
 
+import me.blvckbytes.bbreflect.handle.predicate.FMemberPredicate;
+import me.blvckbytes.bbreflect.handle.transformer.FResponseTransformer;
+import me.blvckbytes.bbreflect.handle.transformer.FValueTransformer;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.NoSuchElementException;
 import java.util.StringJoiner;
 
-public class MethodHandle extends AHandle<Method> {
+public class FieldHandle extends AHandle<Field> {
 
-  private final @Nullable FCallTransformer callTransformer;
   private final @Nullable FResponseTransformer responseTransformer;
+  private final @Nullable FValueTransformer valueTransformer;
 
-  protected MethodHandle(
+  public FieldHandle(
     Class<?> target, ServerVersion version,
-    @Nullable FCallTransformer callTransformer, @Nullable FResponseTransformer responseTransformer,
-    FMemberPredicate<Method> predicate
+    @Nullable FResponseTransformer responseTransformer,
+    @Nullable FValueTransformer valueTransformer,
+    FMemberPredicate<Field> predicate
   ) throws NoSuchElementException {
-    super(target, Method.class, version, predicate);
+    super(target, Field.class, version, predicate);
 
-    this.callTransformer = callTransformer;
     this.responseTransformer = responseTransformer;
+    this.valueTransformer = valueTransformer;
   }
 
   /**
-   * Invoke this method on an object instance
-   * @param o Target object to invoke on
-   * @param args Arguments to pass when invoking the method
-   * @return Method return value
+   * Set the field's value on an object instance
+   * @param o Target object to modify
+   * @param v Field value to set
    */
-  public Object invoke(Object o, Object... args) throws Exception {
-    if (callTransformer != null)
-      args = callTransformer.apply(args);
+  public void set(Object o, Object v) throws Exception {
+    if (valueTransformer != null)
+      v = valueTransformer.apply(v);
+    this.handle.set(o, v);
+  }
 
-    Object response = handle.invoke(o, args);
+  /**
+   * Get the field's value from an object instance
+   * @param o Target object to read from
+   * @return Field value
+   */
+  public Object get(Object o) throws Exception {
+    Object result = this.handle.get(o);
 
     if (responseTransformer != null)
-      response = responseTransformer.apply(response);
+      result = responseTransformer.apply(result);
 
-    return response;
+    return result;
   }
 
   @Override
-  protected String stringify(Method member) {
+  protected String stringify(Field member) {
     StringJoiner sj = new StringJoiner(" ");
 
     sj.add(Modifier.toString(member.getModifiers()));
-    sj.add(member.getReturnType().getName());
+    sj.add(member.getType().getName());
     sj.add(member.getName());
-    sj.add("(");
-
-    StringJoiner argJoiner = new StringJoiner(", ");
-    for (Class<?> parameter : member.getParameterTypes())
-      argJoiner.add(parameter.getName());
-
-    sj.add(argJoiner.toString());
-    sj.add(")");
 
     return sj.toString();
   }

@@ -22,6 +22,16 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect;
+package me.blvckbytes.bbreflect.handle.transformer;
 
-public class IncompletePredicateBuilderException extends RuntimeException {}
+import org.jetbrains.annotations.Nullable;
+
+@FunctionalInterface
+public interface FResponseTransformer {
+
+  /**
+   * Transforms the response from it's representative member to - for example - conform to a unified interface
+   */
+  @Nullable Object apply(@Nullable Object response) throws Exception;
+
+}
