@@ -35,6 +35,7 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
+
   PACKET_SEND_LISTENER((ver, after) -> {
     if (ver.compare(ServerVersion.V1_19_R1) >= 0)
       return Class.forName("net.minecraft.network.PacketSendListener");
@@ -86,16 +87,16 @@ public enum RClass {
     Class.forName("net.minecraft.server." + ver + ".Scoreboard")
   ),
   CRAFT_WORLD((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".CraftWorld")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".CraftWorld")
   ),
   CRAFT_TEAM((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".scoreboard.CraftTeam")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".scoreboard.CraftTeam")
   ),
   CRAFT_SCOREBOARD((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".scoreboard.CraftScoreboard")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".scoreboard.CraftScoreboard")
   ),
   CRAFT_SCOREBOARD_MANAGER((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".scoreboard.CraftScoreboardManager")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".scoreboard.CraftScoreboardManager")
   ),
   PACKET((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.Packet") :
@@ -378,22 +379,22 @@ public enum RClass {
     Class.forName("net.minecraft.server." + ver + ".Container")
   ),
   CRAFT_ITEM_STACK((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".inventory.CraftItemStack")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".inventory.CraftItemStack")
   ),
   CRAFT_SERVER((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".CraftServer")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".CraftServer")
   ),
   CRAFT_MAP_VIEW((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".map.CraftMapView")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".map.CraftMapView")
   ),
   CRAFT_META_ITEM((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".inventory.CraftMetaItem")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".inventory.CraftMetaItem")
   ),
   CRAFT_PLAYER((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".entity.CraftPlayer")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".entity.CraftPlayer")
   ),
   CRAFT_ITEM((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver + ".entity.CraftItem")
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".entity.CraftItem")
   ),
   ENUM_GAME_MODE((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.EnumGamemode") :

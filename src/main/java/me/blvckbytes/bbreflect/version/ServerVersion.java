@@ -29,8 +29,10 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @Getter
-@AllArgsConstructor
 public enum ServerVersion {
 
   V1_7_R0(1,   7, 0,   3),
@@ -94,9 +96,20 @@ public enum ServerVersion {
   V1_19_R3(1, 19, 3, 761),
   ;
 
+  private static final Pattern VERSION_PATTERN = Pattern.compile(".*\\(.*MC.\\s*([a-zA-z\\d\\-.]+).*");
+
   private final int major, minor, release;
   private final int protocol;
   private static final ServerVersion[] values = values();
+  @Getter private final String bukkit;
+
+  private ServerVersion(int major, int minor, int release, int protocol) {
+    this.major = major;
+    this.minor = minor;
+    this.release = release;
+    this.protocol = protocol;
+    this.bukkit = Bukkit.getServer().getClass().getName().split("\\.")[3];
+  }
 
   private boolean matches(int major, int minor, int release) {
     if (this.major != major)
@@ -135,21 +148,36 @@ public enum ServerVersion {
   }
 
   /**
-   * Find the server's version by looking at craftbukkit's package
+   * Find the server's version by looking at craftbukkit's version string
    */
   public static ServerVersion current() {
-    String version = Bukkit.getServer().getClass().getName().split("\\.")[3];
-    String[] data = version.split("_");
+    String version = extractVersion(Bukkit.getVersion());
+    String[] data = version.split("\\.");
 
     ServerVersion result = ServerVersion.fromVersions(
-      Integer.parseInt(data[0].substring(1)), // remove leading v
+      Integer.parseInt(data[0]),
       Integer.parseInt(data[1]),
-      Integer.parseInt(data[2].substring(1)) // Remove leading R
+      Integer.parseInt(data[2])
     );
 
     if (result == null)
       throw new IllegalStateException("Unsupported version encountered: " + version);
 
     return result;
+  }
+
+  /**
+   * Extract the minecraft version string major.minor.release from bukkit's version
+   * string (Example: 3610-Spigot-6198b5a-19df23a (MC: 1.19.2))
+   * @param text Input to extract from
+   * @return Extracted version string
+   */
+  private static String extractVersion(String text) {
+    Matcher versionMatcher = VERSION_PATTERN.matcher(text);
+
+    if (!versionMatcher.matches() || versionMatcher.group(1) == null)
+      throw new IllegalStateException("Cannot parse version string '" + text + "'");
+
+    return versionMatcher.group(1);
   }
 }
