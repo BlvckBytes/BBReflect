@@ -109,6 +109,7 @@ public class ReflectionHelper implements IReflectionHelper {
       .orElse(() -> (
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_19_R0)
+          .withCallTransformer(args -> new Object[] { args[0], makeFutureListener((Runnable) args[1]) })
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener.class)
         ))
