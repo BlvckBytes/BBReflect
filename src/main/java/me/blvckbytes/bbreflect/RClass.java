@@ -28,6 +28,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.version.ServerVersion;
+import me.blvckbytes.utilitytypes.FUnsafeBiFunction;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -409,7 +410,7 @@ public enum RClass {
   )
   ;
 
-  private final IUnsafeBiFunction<ServerVersion, Boolean, Class<?>, ClassNotFoundException> resolve;
+  private final FUnsafeBiFunction<ServerVersion, Boolean, Class<?>, ClassNotFoundException> resolve;
   private static final Map<RClass, ClassHandle> cache;
 
   static {

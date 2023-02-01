@@ -26,6 +26,11 @@
             <version>1.18.24</version>
         </dependency>
         <dependency>
+            <groupId>me.blvckbytes</groupId>
+            <artifactId>UtilityTypes</artifactId>
+            <version>0.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot</artifactId>
             <version>1.17-R0.1-SNAPSHOT</version>

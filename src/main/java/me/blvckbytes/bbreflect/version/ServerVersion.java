@@ -24,7 +24,6 @@
 
 package me.blvckbytes.bbreflect.version;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
@@ -103,7 +102,7 @@ public enum ServerVersion {
   private static final ServerVersion[] values = values();
   @Getter private final String bukkit;
 
-  private ServerVersion(int major, int minor, int release, int protocol) {
+  ServerVersion(int major, int minor, int release, int protocol) {
     this.major = major;
     this.minor = minor;
     this.release = release;

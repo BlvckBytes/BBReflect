@@ -35,6 +35,7 @@ import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.packets.IInterceptor;
 import me.blvckbytes.bbreflect.packets.InterceptorFactory;
 import me.blvckbytes.bbreflect.version.ServerVersion;
+import me.blvckbytes.utilitytypes.Tuple;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -189,10 +190,10 @@ public class ReflectionHelper implements IReflectionHelper {
       networkManagerAndChannelCache.put(player, networkManagerAndChannel);
     }
 
-    if (!networkManagerAndChannel.getB().isOpen())
+    if (!networkManagerAndChannel.b.isOpen())
       return;
 
-    sendPacket(networkManagerAndChannel.getA(), packet, completion);
+    sendPacket(networkManagerAndChannel.a, packet, completion);
   }
 
   @Override
