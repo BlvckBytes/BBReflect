@@ -59,7 +59,14 @@ public class ReflectionHelperFactory {
     // They used to inline netty on 1.7.x
     this.needsNettyPatching = this.version.compare(ServerVersion.V1_7_R10) <= 0;
 
+    // No patching required, don't invoke the custom classloader
+    if (!this.needsNettyPatching) {
+      this.reflectionHelperClass = Class.forName(REFLECTION_HELPER_FQN);
+      return;
+    }
+
     // Pre-load the patched class for all subsequent make calls
+    // FIXME: This custom classloader seems to produce weird behavior when reloading
     this.reflectionHelperClass = new UtfPatcherClassLoader(
       parent, AFFECTED_FQN_LIST::contains, this::loaderPatcher
     ).loadClass(REFLECTION_HELPER_FQN);
