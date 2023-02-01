@@ -90,6 +90,9 @@ public enum RClass {
     Class.forName("net.minecraft.world.score.Scoreboard") :
     Class.forName("net.minecraft.server." + ver + ".Scoreboard")
   ),
+  CRAFT_COMMAND_MAP((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".command.CraftCommandMap")
+  ),
   CRAFT_WORLD((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".CraftWorld")
   ),
