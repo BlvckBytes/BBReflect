@@ -35,7 +35,10 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
-
+  MATERIAL_MAP_COLOR((ver, after) -> after ?
+    Class.forName("net.minecraft.world.level.material.MaterialMapColor") :
+    Class.forName("net.minecraft.server." + ver + ".MaterialMapColor")
+  ),
   PACKET_SEND_LISTENER((ver, after) -> {
     if (ver.compare(ServerVersion.V1_19_R1) >= 0)
       return Class.forName("net.minecraft.network.PacketSendListener");

@@ -87,6 +87,13 @@ public class ClassHandle extends AHandle<Class> {
   }
 
   /**
+   * Get the array type for the current class handle
+   */
+  public Class<?> arrayType() throws ClassNotFoundException {
+    return Class.forName("[L" + handle.getCanonicalName() + ";");
+  }
+
+  /**
    * Create a new FieldHandle builder which will query this class
    */
   public FieldPredicateBuilder locateField() {
