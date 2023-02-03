@@ -146,6 +146,12 @@ public enum ServerVersion {
     return null;
   }
 
+  private static int parseIntegerOrZero(String[] data, int index) {
+    if (index >= data.length)
+      return 0;
+    return Integer.parseInt(data[index]);
+  }
+
   /**
    * Find the server's version by looking at craftbukkit's version string
    */
@@ -154,9 +160,9 @@ public enum ServerVersion {
     String[] data = version.split("\\.");
 
     ServerVersion result = ServerVersion.fromVersions(
-      Integer.parseInt(data[0]),
-      Integer.parseInt(data[1]),
-      Integer.parseInt(data[2])
+      parseIntegerOrZero(data, 0),
+      parseIntegerOrZero(data, 1),
+      parseIntegerOrZero(data, 2)
     );
 
     if (result == null)
