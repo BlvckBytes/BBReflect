@@ -36,6 +36,10 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
+  VEC3D((ver, after) -> after ?
+    Class.forName("net.minecraft.world.phys.Vec3D") :
+    Class.forName("net.minecraft.server." + ver + ".Vec3D")
+  ),
   MATERIAL_MAP_COLOR((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.material.MaterialMapColor") :
     Class.forName("net.minecraft.server." + ver + ".MaterialMapColor")
@@ -237,6 +241,10 @@ public enum RClass {
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutWindowData") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutWindowData")
   ),
+  PACKET_O_WINDOW_ITEMS((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutWindowItems") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutWindowItems")
+  ),
   PACKET_O_TITLE((ver, after) -> after ?
     null :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutTitle")
@@ -248,6 +256,10 @@ public enum RClass {
   PACKET_O_KEEP_ALIVE((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutKeepAlive") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutKeepAlive")
+  ),
+  PACKET_O_NAMED_ENTITY_SPAWN((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawn") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutNamedEntitySpawn")
   ),
   PACKET_O_SCOREBOARD_TEAM((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeam") :
