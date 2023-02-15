@@ -285,6 +285,22 @@ public enum RClass {
     Class.forName("net.minecraft.network.protocol.game.ClientboundSystemChatPacket") :
     null
   ),
+  PACKET_I_FLYING((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInFlying") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInFlying")
+  ),
+  PACKET_I_LOOK((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInFlying$PacketPlayInLook") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInFlying$PacketPlayInLook")
+  ),
+  PACKET_I_POSITION((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInFlying$PacketPlayInPosition") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInFlying$PacketPlayInPosition")
+  ),
+  PACKET_I_POSITION_LOOK((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInFlying$PacketPlayInPositionLook") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInFlying$PacketPlayInPositionLook")
+  ),
   PACKET_I_B_EDIT((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayInBEdit") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayInBEdit")
