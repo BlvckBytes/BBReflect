@@ -99,6 +99,7 @@ public class ReflectionHelper implements IReflectionHelper {
      */
     M_NETWORK_MANAGER__SEND = C_NETWORK_MANAGER.locateMethod()
       .withVersionRange(ServerVersion.V1_19_R1, null)
+      .withPublic(true)
       .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
       .withParameter(C_PACKET_SEND_LISTENER, false, Assignability.TARGET_TO_TYPE)
       .withCallTransformer(args -> {
@@ -111,6 +112,7 @@ public class ReflectionHelper implements IReflectionHelper {
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_19_R0)
           .withCallTransformer(args -> new Object[] { args[0], makeFutureListener((Runnable) args[1]) })
+          .withPublic(true)
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener.class)
         ))
@@ -118,6 +120,7 @@ public class ReflectionHelper implements IReflectionHelper {
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_12_R2)
           .withCallTransformer(args -> new Object[] { args[0], makeFutureListener((Runnable) args[1]), new GenericFutureListener[0] })
+          .withPublic(true)
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener.class)
           .withParameter(GenericFutureListener[].class)
@@ -126,6 +129,7 @@ public class ReflectionHelper implements IReflectionHelper {
         C_NETWORK_MANAGER.locateMethod()
           .withVersionRange(null, ServerVersion.V1_7_R10)
           .withCallTransformer(args -> new Object[] { args[0], new GenericFutureListener[] { makeFutureListener((Runnable) args[1]) } })
+          .withPublic(true)
           .withParameter(C_PACKET, false, Assignability.TARGET_TO_TYPE)
           .withParameter(GenericFutureListener[].class)
       ))

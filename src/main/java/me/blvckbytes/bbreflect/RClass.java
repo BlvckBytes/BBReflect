@@ -193,6 +193,10 @@ public enum RClass {
     Class.forName("net.minecraft.network.chat.ChatComponentText") :
     Class.forName("net.minecraft.server." + ver + ".ChatComponentText")
   ),
+  PACKET_O_MULTI_BLOCK_CHANGE((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutMultiBlockChange") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutMultiBlockChange")
+  ),
   PACKET_O_MAP((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutMap") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutMap")
