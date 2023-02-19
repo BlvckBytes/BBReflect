@@ -25,6 +25,8 @@
 package me.blvckbytes.bbreflect;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.Getter;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
@@ -34,6 +36,7 @@ import me.blvckbytes.bbreflect.handle.MethodHandle;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.packets.IInterceptor;
 import me.blvckbytes.bbreflect.packets.InterceptorFactory;
+import me.blvckbytes.bbreflect.packets.RawPacket;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import me.blvckbytes.utilitytypes.Tuple;
 import org.bukkit.entity.Player;
@@ -196,6 +199,16 @@ public class ReflectionHelper implements IReflectionHelper {
 
     if (!networkManagerAndChannel.b.isOpen())
       return;
+
+    if (packet instanceof RawPacket) {
+      Channel channel = networkManagerAndChannel.b;
+      ChannelFuture future = channel.writeAndFlush(packet);
+
+      if (completion != null)
+        future.addListener((GenericFutureListener<? extends Future<? super Void>>) makeFutureListener(completion));
+
+      return;
+    }
 
     sendPacket(networkManagerAndChannel.a, packet, completion);
   }

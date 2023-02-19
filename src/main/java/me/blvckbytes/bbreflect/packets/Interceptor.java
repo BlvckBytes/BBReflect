@@ -38,7 +38,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   private final WeakReference<Channel> channel;
   private final IPacketOperator operator;
 
-  private @Nullable String handlerName;
+  private @Nullable String handlerName, encoderName;
   private @Nullable Object networkManager;
 
   private volatile @Nullable String playerName;
@@ -135,8 +135,11 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       networkManager = pipe.get("packet_handler");
 
       // Register before the packet handler to have an interception capability
+      this.handlerName = name + "_handler";
       pipe.addBefore("packet_handler", name, this);
-      this.handlerName = name;
+
+      this.encoderName = name + "_encoder";
+      pipe.addAfter("encoder", this.encoderName, new RawPacketEncoder());
     });
   }
 
@@ -144,16 +147,14 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
    * Detaches this interceptor from it's underlying channel
    */
   public void detach() {
-    if (this.handlerName == null)
-      return;
-
     ifPipePresent(pipe -> {
       List<String> names = pipe.names();
 
-      if (!names.contains(handlerName))
-        return;
+      if (handlerName != null && names.contains(handlerName))
+        pipe.remove(handlerName);
 
-      pipe.remove(handlerName);
+      if (encoderName != null && names.contains(encoderName))
+        pipe.remove(encoderName);
     });
 
     this.networkManager = null;
