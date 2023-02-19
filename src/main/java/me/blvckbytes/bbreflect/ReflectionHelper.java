@@ -29,10 +29,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.Getter;
-import me.blvckbytes.bbreflect.handle.ClassHandle;
-import me.blvckbytes.bbreflect.handle.EnumHandle;
-import me.blvckbytes.bbreflect.handle.FieldHandle;
-import me.blvckbytes.bbreflect.handle.MethodHandle;
+import me.blvckbytes.bbreflect.handle.*;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.packets.IInterceptor;
 import me.blvckbytes.bbreflect.packets.InterceptorFactory;
@@ -42,6 +39,10 @@ import me.blvckbytes.utilitytypes.Tuple;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
 
@@ -61,9 +62,14 @@ public class ReflectionHelper implements IReflectionHelper {
 
   private InterceptorFactory interceptorFactory;
 
+  private final Constructor<?> javaLangObjectConstructor;
+  private final Tuple<Object, Method> serializationConstructorFactory;
+  private final Map<Class<?>, Constructor<?>> emptyConstructorCache;
+
   public ReflectionHelper(ServerVersion version) throws Exception {
     this.version = version;
     this.networkManagerAndChannelCache = new WeakHashMap<>();
+    this.emptyConstructorCache = new HashMap<>();
 
     ClassHandle C_CRAFT_PLAYER = getClass(RClass.CRAFT_PLAYER);
     ClassHandle C_ENTITY_PLAYER = getClass(RClass.ENTITY_PLAYER);
@@ -141,6 +147,9 @@ public class ReflectionHelper implements IReflectionHelper {
     F_NETWORK_MANAGER__CHANNEL = C_NETWORK_MANAGER.locateField()
       .withType(Channel.class)
       .required();
+
+    this.javaLangObjectConstructor = Object.class.getConstructor();
+    this.serializationConstructorFactory = getSerializationConstructorFactory();
   }
 
   private @Nullable GenericFutureListener<?> makeFutureListener(@Nullable Runnable runnable) {
@@ -234,5 +243,30 @@ public class ReflectionHelper implements IReflectionHelper {
     } catch (ClassNotFoundException e) {
       return null;
     }
+  }
+
+  @Override
+  public Object instantiateUnsafely(Class<?> type) throws Exception {
+    Constructor<?> constructor = emptyConstructorCache.get(type);
+
+    if (constructor == null) {
+      constructor = newConstructorForSerialization(type);
+      emptyConstructorCache.put(type, constructor);
+    }
+
+    return constructor.newInstance((Object[]) null);
+  }
+
+  private Tuple<Object, Method> getSerializationConstructorFactory() throws Exception {
+    Class<?> reflectionFactoryClass = Class.forName("sun.reflect.ReflectionFactory");
+    Object factory = reflectionFactoryClass.getDeclaredMethod("getReflectionFactory").invoke(null);
+    Method method = reflectionFactoryClass.getDeclaredMethod("newConstructorForSerialization", Class.class, Constructor.class);
+    return new Tuple<>(factory, method);
+  }
+
+  private Constructor<?> newConstructorForSerialization(Class<?> type) throws Exception {
+    Constructor<?> constructor = (Constructor<?>) serializationConstructorFactory.b.invoke(serializationConstructorFactory.a, type, javaLangObjectConstructor);
+    constructor.setAccessible(true);
+    return constructor;
   }
 }

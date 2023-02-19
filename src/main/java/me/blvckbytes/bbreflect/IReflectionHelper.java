@@ -93,4 +93,9 @@ public interface IReflectionHelper {
    */
   ServerVersion getVersion();
 
+  /**
+   * Create a new instance of the provided type without calling it's constructor
+   */
+  Object instantiateUnsafely(Class<?> type) throws Exception;
+
 }
