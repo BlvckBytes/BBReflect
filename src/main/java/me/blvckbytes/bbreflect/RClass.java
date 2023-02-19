@@ -74,6 +74,22 @@ public enum RClass {
     Class.forName("net.minecraft.world.level.World") :
     Class.forName("net.minecraft.server." + ver + ".World")
   ),
+  I_BLOCK_DATA((ver, after) -> after ?
+    Class.forName("net.minecraft.world.level.block.state.IBlockData") :
+    null
+  ),
+  BLOCK((ver, after) -> after ?
+    Class.forName("net.minecraft.world.level.block.Block") :
+    null
+  ),
+  SECTION_POSITION((ver, after) -> after ?
+    Class.forName("net.minecraft.core.SectionPosition") :
+    null
+  ),
+  BASE_BLOCK_POSITION((ver, after) -> after ?
+    Class.forName("net.minecraft.core.BaseBlockPosition") :
+    null
+  ),
   BLOCK_POSITION((ver, after) -> after ?
     Class.forName("net.minecraft.core.BlockPosition") :
     Class.forName("net.minecraft.server." + ver + ".BlockPosition")
@@ -96,6 +112,12 @@ public enum RClass {
   ),
   CRAFT_COMMAND_MAP((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".command.CraftCommandMap")
+  ),
+  CRAFT_BLOCK_DATA((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".block.data.CraftBlockData")
+  ),
+  CRAFT_BLOCK_STATE((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".block.CraftBlockState")
   ),
   CRAFT_WORLD((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".CraftWorld")
