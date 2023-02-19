@@ -28,6 +28,7 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -152,18 +153,50 @@ public enum ServerVersion {
     return Integer.parseInt(data[index]);
   }
 
+  private static String tryFindNMSPackageVersion() {
+    Class<?> currentClass = Bukkit.getServer().getClass();
+    while (currentClass != null && currentClass != Object.class) {
+      for (Field field : currentClass.getDeclaredFields()) {
+        String typeName = field.getType().getSimpleName();
+        if (typeName.equals("DedicatedServer") || typeName.equals("MinecraftServer")) {
+          return field.getType().getName().split("\\.")[3];
+        }
+      }
+      currentClass = currentClass.getSuperclass();
+    }
+    return null;
+  }
+
   /**
    * Find the server's version by looking at craftbukkit's version string
    */
   public static ServerVersion current() {
-    String version = extractVersion(Bukkit.getVersion());
-    String[] data = version.split("\\.");
+    String nmsPackageVersion = tryFindNMSPackageVersion();
 
-    ServerVersion result = ServerVersion.fromVersions(
-      parseIntegerOrZero(data, 0),
-      parseIntegerOrZero(data, 1),
-      parseIntegerOrZero(data, 2)
-    );
+    String version;
+    ServerVersion result;
+
+    // FIXME: This is kind of a crutch as it won't work on version-less packages
+    if (nmsPackageVersion != null) {
+      version = nmsPackageVersion;
+      String[] versionData = nmsPackageVersion.split("_");
+      result = ServerVersion.fromVersions(
+        Integer.parseInt(versionData[0].substring(1)),
+        Integer.parseInt(versionData[1]),
+        Integer.parseInt(versionData[2].substring(1))
+      );
+    }
+
+    else {
+      version = extractVersion(Bukkit.getVersion());
+      String[] data = version.split("\\.");
+
+      result = ServerVersion.fromVersions(
+        parseIntegerOrZero(data, 0),
+        parseIntegerOrZero(data, 1),
+        parseIntegerOrZero(data, 2)
+      );
+    }
 
     if (result == null)
       throw new IllegalStateException("Unsupported version encountered: " + version);
