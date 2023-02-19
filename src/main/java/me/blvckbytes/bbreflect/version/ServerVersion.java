@@ -167,27 +167,30 @@ public enum ServerVersion {
     return null;
   }
 
-  /**
-   * Find the server's version by looking at craftbukkit's version string
-   */
-  public static ServerVersion current() {
-    String nmsPackageVersion = tryFindNMSPackageVersion();
+  private static @Nullable ServerVersion tryParseNMSPackageVersion(@Nullable String version) {
+    if (version == null)
+      return null;
 
-    String version;
-    ServerVersion result;
-
-    // FIXME: This is kind of a crutch as it won't work on version-less packages
-    if (nmsPackageVersion != null) {
-      version = nmsPackageVersion;
-      String[] versionData = nmsPackageVersion.split("_");
-      result = ServerVersion.fromVersions(
+    try {
+      String[] versionData = version.split("_");
+      return ServerVersion.fromVersions(
         Integer.parseInt(versionData[0].substring(1)),
         Integer.parseInt(versionData[1]),
         Integer.parseInt(versionData[2].substring(1))
       );
+    } catch (Exception e) {
+      return null;
     }
+  }
 
-    else {
+  /**
+   * Find the server's version by looking at craftbukkit's version string
+   */
+  public static ServerVersion current() {
+    String version = tryFindNMSPackageVersion();
+    ServerVersion result = tryParseNMSPackageVersion(version);
+
+    if (result == null) {
       version = extractVersion(Bukkit.getVersion());
       String[] data = version.split("\\.");
 
