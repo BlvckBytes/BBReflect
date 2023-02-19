@@ -68,6 +68,13 @@ public class ClassHandle extends AHandle<Class> {
   }
 
   /**
+   * Get the class loader of the underlying handle
+   */
+  public ClassLoader getClassLoader() {
+    return handle.getClassLoader();
+  }
+
+  /**
    * Interpret this class as an enumeration and get a handle to it
    * @throws IllegalStateException Thrown if this class is not an enumeration
    */
