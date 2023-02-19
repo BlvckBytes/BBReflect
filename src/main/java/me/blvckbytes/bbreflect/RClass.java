@@ -76,7 +76,7 @@ public enum RClass {
   ),
   I_BLOCK_DATA((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.block.state.IBlockData") :
-    null
+    Class.forName("net.minecraft.server." + ver + ".IBlockData")
   ),
   BLOCK((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.block.Block") :
