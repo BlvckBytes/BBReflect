@@ -26,16 +26,9 @@ package me.blvckbytes.bbreflect.packets;
 
 import org.jetbrains.annotations.Nullable;
 
-public interface IInterceptor {
+@FunctionalInterface
+public interface FBytesInterceptor {
 
-  void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
-
-  void setInboundPacketInterceptor(FPacketInterceptor interceptor);
-
-  void setOutboundPacketInterceptor(FPacketInterceptor interceptor);
-
-  void setInboundBytesInterceptor(FBytesInterceptor interceptor);
-
-  void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
+  @Nullable IBinaryBuffer intercept(@Nullable String senderName, IBinaryBuffer buffer, Object channel) throws Exception;
 
 }

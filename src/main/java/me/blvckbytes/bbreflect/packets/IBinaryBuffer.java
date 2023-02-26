@@ -24,18 +24,16 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import org.jetbrains.annotations.Nullable;
+public interface IBinaryBuffer {
 
-public interface IInterceptor {
+  byte getByte(int index);
 
-  void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
+  void setByte(int index, byte value);
 
-  void setInboundPacketInterceptor(FPacketInterceptor interceptor);
+  int capacity();
 
-  void setOutboundPacketInterceptor(FPacketInterceptor interceptor);
+  byte[] asByteArray();
 
-  void setInboundBytesInterceptor(FBytesInterceptor interceptor);
-
-  void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
+  Object asByteBuf();
 
 }

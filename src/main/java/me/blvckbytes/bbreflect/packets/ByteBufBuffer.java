@@ -24,18 +24,37 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import org.jetbrains.annotations.Nullable;
+import io.netty.buffer.ByteBuf;
 
-public interface IInterceptor {
+public class ByteBufBuffer implements IBinaryBuffer {
 
-  void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
+  private final ByteBuf buffer;
 
-  void setInboundPacketInterceptor(FPacketInterceptor interceptor);
+  public ByteBufBuffer(ByteBuf buffer) {
+    this.buffer = buffer;
+  }
 
-  void setOutboundPacketInterceptor(FPacketInterceptor interceptor);
+  @Override
+  public byte getByte(int index) {
+    return this.buffer.getByte(index);
+  }
 
-  void setInboundBytesInterceptor(FBytesInterceptor interceptor);
+  @Override
+  public void setByte(int index, byte value) {
+    this.buffer.setByte(index, value);
+  }
 
-  void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
+  public int capacity() {
+    return this.buffer.capacity();
+  }
 
+  @Override
+  public byte[] asByteArray() {
+    return this.buffer.array();
+  }
+
+  @Override
+  public Object asByteBuf() {
+    return this.buffer;
+  }
 }

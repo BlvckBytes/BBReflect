@@ -24,18 +24,25 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import org.jetbrains.annotations.Nullable;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import me.blvckbytes.utilitytypes.FUnsafeFunction;
 
-public interface IInterceptor {
+public class BinaryPacketWriteHandler extends ChannelDuplexHandler {
 
-  void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
+  private final FUnsafeFunction<ByteBuf, Object, Exception> messageConsumer;
 
-  void setInboundPacketInterceptor(FPacketInterceptor interceptor);
+  public BinaryPacketWriteHandler(FUnsafeFunction<ByteBuf, Object, Exception> messageConsumer) {
+    this.messageConsumer = messageConsumer;
+  }
 
-  void setOutboundPacketInterceptor(FPacketInterceptor interceptor);
+  @Override
+  public void write(ChannelHandlerContext context, Object message, ChannelPromise promise) throws Exception {
+    Object newMessage = this.messageConsumer.apply((ByteBuf) message);
 
-  void setInboundBytesInterceptor(FBytesInterceptor interceptor);
-
-  void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
-
+    if (newMessage != null)
+      super.write(context, newMessage, promise);
+  }
 }

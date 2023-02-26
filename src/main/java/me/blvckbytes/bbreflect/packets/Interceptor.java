@@ -34,17 +34,30 @@ import java.util.function.Consumer;
 
 public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
+  private static final String
+    PIPE_PACKET_HANDLER_NAME     = "_packet_handler",
+    PIPE_RAW_PACKET_ENCODER_NAME = "_raw_packet_encoder",
+    PIPE_BINARY_DECODER_NAME     = "_binary_decoder",
+    PIPE_BINARY_ENCODER_NAME     = "_binary_encoder";
+
+  private static final String[] AVAILABLE_PIPE_NAMES = {
+    PIPE_PACKET_HANDLER_NAME, PIPE_RAW_PACKET_ENCODER_NAME, PIPE_BINARY_DECODER_NAME, PIPE_BINARY_ENCODER_NAME
+  };
+
   // Don't keep closed channels from being garbage-collected
   private final WeakReference<Channel> channel;
   private final IPacketOperator operator;
 
-  private @Nullable String handlerName, encoderName;
+  private @Nullable String handlerName;
   private @Nullable Object networkManager;
 
   private volatile @Nullable String playerName;
 
   @Setter
-  private FPacketInterceptor inboundInterceptor, outboundInterceptor;
+  private FPacketInterceptor inboundPacketInterceptor, outboundPacketInterceptor;
+
+  @Setter
+  private FBytesInterceptor inboundBytesInterceptor, outboundBytesInterceptor;
 
   /**
    * Create a new packet interceptor on top of a network channel
@@ -72,9 +85,9 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     }
 
     // Call the inbound interceptor, if applicable
-    if (inboundInterceptor != null && ch != null) {
+    if (inboundPacketInterceptor != null && ch != null) {
       try {
-        o = inboundInterceptor.intercept(playerName, o, ch);
+        o = inboundPacketInterceptor.intercept(playerName, o, ch);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -92,9 +105,9 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     Channel ch = channel.get();
 
     // Call the outbound interceptor, if applicable
-    if (outboundInterceptor != null && ch != null) {
+    if (outboundPacketInterceptor != null && ch != null) {
       try {
-        o = outboundInterceptor.intercept(playerName, o, ch);
+        o = outboundPacketInterceptor.intercept(playerName, o, ch);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -129,17 +142,57 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     if (this.handlerName != null)
       throw new IllegalStateException("Tried to attach twice");
 
+    this.handlerName = name;
+
     ifPipePresent(pipe -> {
       // The network manager instance is also registered within the
       // pipe, get it by it's name to have a reference available
       networkManager = pipe.get("packet_handler");
 
       // Register before the packet handler to have an interception capability
-      this.handlerName = name + "_handler";
-      pipe.addBefore("packet_handler", name, this);
+      pipe.addBefore("packet_handler", this.handlerName + PIPE_PACKET_HANDLER_NAME, this);
 
-      this.encoderName = name + "_encoder";
-      pipe.addAfter("encoder", this.encoderName, new RawPacketEncoder());
+      // Register the custom binary decoder before the actual decoder to have an interception capability
+      pipe.addBefore("decoder", this.handlerName + PIPE_BINARY_DECODER_NAME, new BinaryPacketReadHandler(message -> {
+        Channel channelInstance = channel.get();
+
+        if (inboundBytesInterceptor != null && channelInstance != null) {
+          try {
+            IBinaryBuffer result = inboundBytesInterceptor.intercept(playerName, new ByteBufBuffer(message), channelInstance);
+
+            if (result == null)
+              return null;
+
+            return result.asByteBuf();
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+
+        return message;
+      }));
+
+      pipe.addAfter("encoder", this.handlerName + PIPE_RAW_PACKET_ENCODER_NAME, new RawPacketEncoder());
+
+      // Register the custom binary encoder before the actual encoder to see it's results
+      pipe.addBefore("encoder", this.handlerName + PIPE_BINARY_ENCODER_NAME, new BinaryPacketWriteHandler(message -> {
+        Channel channelInstance = channel.get();
+
+        if (outboundBytesInterceptor != null && channelInstance != null) {
+          try {
+            IBinaryBuffer result = outboundBytesInterceptor.intercept(playerName, new ByteBufBuffer(message), channelInstance);
+
+            if (result == null)
+              return null;
+
+            return result.asByteBuf();
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+
+        return message;
+      }));
     });
   }
 
@@ -147,14 +200,18 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
    * Detaches this interceptor from it's underlying channel
    */
   public void detach() {
+    // Already detached, noop
+    if (this.handlerName == null)
+      return;
+
     ifPipePresent(pipe -> {
       List<String> names = pipe.names();
 
-      if (handlerName != null && names.contains(handlerName))
-        pipe.remove(handlerName);
-
-      if (encoderName != null && names.contains(encoderName))
-        pipe.remove(encoderName);
+      for (String pipeName : AVAILABLE_PIPE_NAMES) {
+        String registeredName = this.handlerName + pipeName;
+        if (names.contains(registeredName))
+          pipe.remove(registeredName);
+      }
     });
 
     this.networkManager = null;

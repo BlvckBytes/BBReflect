@@ -24,18 +24,38 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import org.jetbrains.annotations.Nullable;
+import io.netty.buffer.Unpooled;
 
-public interface IInterceptor {
+public class ByteArrayBuffer implements IBinaryBuffer {
 
-  void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
+  private final byte[] array;
 
-  void setInboundPacketInterceptor(FPacketInterceptor interceptor);
+  public ByteArrayBuffer(byte[] array) {
+    this.array = array;
+  }
 
-  void setOutboundPacketInterceptor(FPacketInterceptor interceptor);
+  @Override
+  public byte getByte(int index) {
+    return this.array[index];
+  }
 
-  void setInboundBytesInterceptor(FBytesInterceptor interceptor);
+  @Override
+  public void setByte(int index, byte value) {
+    this.array[index] = value;
+  }
 
-  void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
+  @Override
+  public int capacity() {
+    return this.array.length;
+  }
 
+  @Override
+  public byte[] asByteArray() {
+    return this.array;
+  }
+
+  @Override
+  public Object asByteBuf() {
+    return Unpooled.wrappedBuffer(this.array);
+  }
 }
