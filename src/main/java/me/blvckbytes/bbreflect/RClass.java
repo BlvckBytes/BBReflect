@@ -283,6 +283,10 @@ public enum RClass {
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutKeepAlive") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutKeepAlive")
   ),
+  PACKET_O_ENTITY_STATUS((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayOutEntityStatus") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayOutEntityStatus")
+  ),
   PACKET_O_NAMED_ENTITY_SPAWN((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawn") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutNamedEntitySpawn")
@@ -294,6 +298,14 @@ public enum RClass {
   ENUM_TITLE_ACTION((ver, after) -> after ?
     null :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutTitle$EnumTitleAction")
+  ),
+  CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT_PACKET((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket") :
+    null
+  ),
+  CLIENTBOUND_LEVEL_CHUNK_PACKET_DATA((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData") :
+    null
   ),
   CLIENTBOUND_TITLES_ANIMATION((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket") :
@@ -354,6 +366,10 @@ public enum RClass {
   PACKET_I_CHAT((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayInChat") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayInChat")
+  ),
+  ENTITY_FIREWORKS((ver, after) -> after ?
+    Class.forName("net.minecraft.world.entity.projectile.EntityFireworks") :
+    Class.forName("net.minecraft.server." + ver + ".EntityFireworks")
   ),
   TILE_ENTITY_FURNACE((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.block.entity.TileEntityFurnace") :
@@ -441,6 +457,9 @@ public enum RClass {
   ),
   CRAFT_ITEM_STACK((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".inventory.CraftItemStack")
+  ),
+  CRAFT_ENTITY((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".entity.CraftEntity")
   ),
   CRAFT_SERVER((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".CraftServer")
