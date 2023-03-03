@@ -171,6 +171,8 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
       int slotId = (int) F_PO_SET_SLOT__SLOT_ID.get(packet);
 
       // Setting item on cursor
+      // No need to intervene, as fake items are always cancelled and so this
+      // will only clear the cursor (which is desired anyways)
       if (windowId == -1 && slotId == -1)
         return packet;
 
@@ -180,7 +182,6 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
         fakeItem = ITEM_AIR;
 
       F_PO_SET_SLOT__ITEM.set(packet, M_AS_NMS_COPY.invoke(null, fakeItem));
-      System.out.println("overridden slot " + slotId + " for " + windowId);
     }
 
     return packet;
