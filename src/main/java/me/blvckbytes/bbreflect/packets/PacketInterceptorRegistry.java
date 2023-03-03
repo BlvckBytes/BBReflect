@@ -94,11 +94,11 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     this.outboundBytesInterceptors.remove(interceptor);
   }
 
-  private @Nullable Object callPacketInterceptors(Iterable<FPacketInterceptor> interceptors, @Nullable String senderName, Object packet, Object channel) throws Exception {
+  private @Nullable Object callPacketInterceptors(Iterable<FPacketInterceptor> interceptors, IPacketOwner owner, Object packet, Object channel) throws Exception {
     Object resultingPacket = packet;
 
     for (FPacketInterceptor inboundInterceptor : interceptors) {
-      resultingPacket = inboundInterceptor.intercept(senderName, resultingPacket, channel);
+      resultingPacket = inboundInterceptor.intercept(owner, resultingPacket, channel);
       if (resultingPacket == null)
         break;
     }
@@ -106,11 +106,11 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     return resultingPacket;
   }
 
-  private @Nullable IBinaryBuffer callBytesInterceptors(Iterable<FBytesInterceptor> interceptors, @Nullable String senderName, IBinaryBuffer buffer, Object channel) throws Exception {
+  private @Nullable IBinaryBuffer callBytesInterceptors(Iterable<FBytesInterceptor> interceptors, IPacketOwner owner, IBinaryBuffer buffer, Object channel) throws Exception {
     IBinaryBuffer resultingBuffer = buffer;
 
     for (FBytesInterceptor inboundInterceptor : interceptors) {
-      resultingBuffer = inboundInterceptor.intercept(senderName, resultingBuffer, channel);
+      resultingBuffer = inboundInterceptor.intercept(owner, resultingBuffer, channel);
       if (resultingBuffer == null)
         break;
     }
@@ -119,9 +119,9 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
   }
 
   private void setupInterceptor(IInterceptor interceptor) {
-    interceptor.setInboundPacketInterceptor((senderName, packet, channel) -> this.callPacketInterceptors(inboundPacketInterceptors, senderName, packet, channel));
-    interceptor.setOutboundPacketInterceptor((senderName, packet, channel) -> this.callPacketInterceptors(outboundPacketInterceptors, senderName, packet, channel));
-    interceptor.setInboundBytesInterceptor((senderName, buffer, channel) -> this.callBytesInterceptors(inboundBytesInterceptors, senderName, buffer, channel));
-    interceptor.setOutboundBytesInterceptor((senderName, buffer, channel) -> this.callBytesInterceptors(outboundBytesInterceptors, senderName, buffer, channel));
+    interceptor.setInboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(inboundPacketInterceptors, owner, packet, channel));
+    interceptor.setOutboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(outboundPacketInterceptors, owner, packet, channel));
+    interceptor.setInboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(inboundBytesInterceptors, owner, buffer, channel));
+    interceptor.setOutboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(outboundBytesInterceptors, owner, buffer, channel));
   }
 }

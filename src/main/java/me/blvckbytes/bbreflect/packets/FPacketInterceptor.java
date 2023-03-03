@@ -31,11 +31,12 @@ public interface FPacketInterceptor {
 
   /**
    * Called whenever a packet passes through the intercepted pipeline
-   * @param senderName Name of the sender, only non-null at and after the LoginIn-Packet
+   * @param owner Owner of this packet, name only non-null at and after the LoginIn-Packet,
+   *              player instance only non-null after LoginIn-Packet
    * @param packet Packet instance
    * @param channel Intercepted channel
    * @return The received (and possibly modified) packet or null to drop the packet
    */
-  @Nullable Object intercept(@Nullable String senderName, Object packet, Object channel) throws Exception;
+  @Nullable Object intercept(IPacketOwner owner, Object packet, Object channel) throws Exception;
 
 }

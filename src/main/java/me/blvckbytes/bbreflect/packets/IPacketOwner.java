@@ -24,11 +24,13 @@
 
 package me.blvckbytes.bbreflect.packets;
 
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-@FunctionalInterface
-public interface FBytesInterceptor {
+public interface IPacketOwner {
 
-  @Nullable IBinaryBuffer intercept(IPacketOwner owner, IBinaryBuffer buffer, Object channel) throws Exception;
+  @Nullable String getName();
+
+  @Nullable Player getPlayer();
 
 }

@@ -33,6 +33,10 @@ import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -40,7 +44,7 @@ import java.util.function.Consumer;
 
 import static org.bukkit.Bukkit.getServer;
 
-public class InterceptorFactory implements IPacketOperator {
+public class InterceptorFactory implements IPacketOperator, Listener {
 
   private final String handlerName;
 
@@ -52,7 +56,8 @@ public class InterceptorFactory implements IPacketOperator {
     F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
-  private final WeakHashMap<String, Interceptor> interceptorByPlayerName;
+  private final Map<String, Interceptor> interceptorByPlayerName;
+  private final Map<Player, Interceptor> interceptorByPlayer;
   private final List<Interceptor> interceptors;
   private final ReflectionHelper helper;
 
@@ -61,7 +66,8 @@ public class InterceptorFactory implements IPacketOperator {
     this.handlerName = handlerName;
     this.interceptors = new ArrayList<>();
     this.channelHandlers = new HashMap<>();
-    this.interceptorByPlayerName = new WeakHashMap<>();
+    this.interceptorByPlayerName = new HashMap<>();
+    this.interceptorByPlayer = new HashMap<>();
 
     ClassHandle C_CRAFT_PLAYER = helper.getClass(RClass.CRAFT_PLAYER);
     ClassHandle C_ENTITY_PLAYER = helper.getClass(RClass.ENTITY_PLAYER);
@@ -228,11 +234,11 @@ public class InterceptorFactory implements IPacketOperator {
   /**
    * Attaches an interceptor on a specific channel with the provided handler name
    * @param channel Channel to attach an interceptor to
-   * @param playerName Name of the player, if it's already known at the time of instantiation
+   * @param player Owning player, if it's already known at the time of instantiation
    * @return The attached interceptor instance
    */
-  private Interceptor attachInterceptor(Channel channel, @Nullable String playerName) {
-    Interceptor interceptor = new Interceptor(channel, playerName, this);
+  private Interceptor attachInterceptor(Channel channel, @Nullable Player player) {
+    Interceptor interceptor = new Interceptor(channel, player, this);
 
     interceptor.attach(handlerName);
     interceptors.add(interceptor);
@@ -276,9 +282,8 @@ public class InterceptorFactory implements IPacketOperator {
       Channel c = getPlayersChannel(p);
 
       if (c != null) {
-        String playerName = p.getName();
-        Interceptor inst = attachInterceptor(c, playerName);
-        interceptorByPlayerName.put(playerName, inst);
+        Interceptor inst = attachInterceptor(c, p);
+        interceptorByPlayerName.put(p.getName(), inst);
         interceptor.accept(inst);
       }
     }
@@ -298,7 +303,32 @@ public class InterceptorFactory implements IPacketOperator {
    * @return Interceptor reference on success, null if this player is not injected
    */
   public @Nullable Interceptor getPlayerInterceptor(Player p) {
+    Interceptor interceptor = interceptorByPlayer.get(p);
+
+    if (interceptor != null)
+      return interceptor;
+
     return interceptorByPlayerName.get(p.getName());
+  }
+
+  @EventHandler
+  public void onQuit(PlayerQuitEvent event) {
+    this.interceptorByPlayer.remove(event.getPlayer());
+  }
+
+  @EventHandler
+  public void onLogin(PlayerLoginEvent event) {
+    // The LoginIn packet now got processed by the server as well, which is why
+    // the player reference is now available and can be used from now onwards
+
+    Player player = event.getPlayer();
+    Interceptor interceptor = this.interceptorByPlayerName.remove(player.getName());
+
+    if (interceptor == null)
+      return;
+
+    interceptor.setPlayerReference(player);
+    interceptorByPlayer.put(player, interceptor);
   }
 
   //=========================================================================//

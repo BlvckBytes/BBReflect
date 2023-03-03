@@ -26,6 +26,7 @@ package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
 import lombok.Setter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -52,6 +53,9 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   private @Nullable Object networkManager;
 
   private volatile @Nullable String playerName;
+  private @Nullable Player playerReference;
+
+  private final IPacketOwner packetOwner;
 
   @Setter
   private FPacketInterceptor inboundPacketInterceptor, outboundPacketInterceptor;
@@ -62,13 +66,26 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   /**
    * Create a new packet interceptor on top of a network channel
    * @param channel Underlying network channel to intercept data on
-   * @param playerName Name of the player, if it's already known at the time of instantiation
+   * @param player Involved player, if already known at the time of instantiation
    * @param operator External packet operator which does all reflective access
    */
-  public Interceptor(Channel channel, @Nullable String playerName, IPacketOperator operator) {
-    this.playerName = playerName;
+  public Interceptor(Channel channel, @Nullable Player player, IPacketOperator operator) {
+    this.playerReference = player;
     this.channel = new WeakReference<>(channel);
     this.operator = operator;
+
+    this.packetOwner = new IPacketOwner() {
+
+      @Override
+      public @Nullable String getName() {
+        return playerName;
+      }
+
+      @Override
+      public @Nullable Player getPlayer() {
+        return playerReference;
+      }
+    };
   }
 
   @Override
@@ -87,7 +104,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     // Call the inbound interceptor, if applicable
     if (inboundPacketInterceptor != null && ch != null) {
       try {
-        o = inboundPacketInterceptor.intercept(playerName, o, ch);
+        o = inboundPacketInterceptor.intercept(packetOwner, o, ch);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -107,7 +124,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     // Call the outbound interceptor, if applicable
     if (outboundPacketInterceptor != null && ch != null) {
       try {
-        o = outboundPacketInterceptor.intercept(playerName, o, ch);
+        o = outboundPacketInterceptor.intercept(packetOwner, o, ch);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -118,6 +135,10 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     }
 
     super.write(channelHandlerContext, o, channelPromise);
+  }
+
+  public void setPlayerReference(@Nullable Player player) {
+    this.playerReference = player;
   }
 
   /**
@@ -158,7 +179,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
         if (inboundBytesInterceptor != null && channelInstance != null) {
           try {
-            IBinaryBuffer result = inboundBytesInterceptor.intercept(playerName, new ByteBufBuffer(message), channelInstance);
+            IBinaryBuffer result = inboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
 
             if (result == null)
               return null;
@@ -180,7 +201,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
         if (outboundBytesInterceptor != null && channelInstance != null) {
           try {
-            IBinaryBuffer result = outboundBytesInterceptor.intercept(playerName, new ByteBufBuffer(message), channelInstance);
+            IBinaryBuffer result = outboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
 
             if (result == null)
               return null;
