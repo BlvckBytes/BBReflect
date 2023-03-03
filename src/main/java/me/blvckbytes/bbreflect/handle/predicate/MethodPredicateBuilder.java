@@ -38,6 +38,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, MethodPredicateBuilder> {
@@ -51,7 +52,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
   private @Nullable String name;
   private @Nullable ComparableType returnType;
   private final List<ComparableType> returnGenerics;
-  private final List<ComparableType> parameterTypes;
+  private @Nullable List<ComparableType> parameterTypes;
   private boolean allowSuperclass;
   private int skip;
 
@@ -65,7 +66,6 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
 
     this.isStatic = false;
     this.allowSuperclass = false;
-    this.parameterTypes = new ArrayList<>();
     this.returnGenerics = new ArrayList<>();
   }
 
@@ -233,6 +233,12 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
 
   ///////////////////////////////// Parameters //////////////////////////////////
 
+  private void initializeParameterTypes(Consumer<List<ComparableType>> parameterTypes) {
+    if (this.parameterTypes == null)
+      this.parameterTypes = new ArrayList<>();
+    parameterTypes.accept(this.parameterTypes);
+  }
+
   /**
    * Add more parameter types of the target method to the sequence
    * @param types Types to be present
@@ -250,7 +256,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
    * @param assignability Whether assignability matching is enabled, and in which direction
    */
   public MethodPredicateBuilder withParameter(Class<?> generic, boolean allowBoxing, Assignability assignability) {
-    this.parameterTypes.add(new ComparableType(generic, allowBoxing, assignability));
+    initializeParameterTypes(parameterTypes -> parameterTypes.add(new ComparableType(generic, allowBoxing, assignability)));
     return this;
   }
 
@@ -259,7 +265,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
    * @param type Type to be present
    */
   public MethodPredicateBuilder withParameter(Class<?> type) {
-    this.parameterTypes.add(new ComparableType(type, false, Assignability.NONE));
+    initializeParameterTypes(parameterTypes -> parameterTypes.add(new ComparableType(type, false, Assignability.NONE)));
     return this;
   }
 
@@ -297,7 +303,7 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
     if (!isInVersionRange())
       return this;
 
-    this.parameterTypes.add(new ComparableType(type.getHandle(), false, Assignability.NONE));
+    initializeParameterTypes(parameterTypes -> parameterTypes.add(new ComparableType(type.getHandle(), false, Assignability.NONE)));
     return this;
   }
 
@@ -336,8 +342,8 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
     try {
       checkVersionRange();
 
-      // At least a name , a return type or parameter types are required
-      if (name == null && returnType == null && parameterTypes.size() == 0)
+      // At least a name, a return type or parameter types are required
+      if (name == null && returnType == null && parameterTypes == null)
         throw new IncompletePredicateBuilderException();
 
       return new MethodHandle(targetClass.getHandle(), version, callTransformer, responseTransformer, (member, counter) -> {
@@ -367,17 +373,19 @@ public class MethodPredicateBuilder extends APredicateBuilder<MethodHandle, Meth
           return false;
 
         // Check parameters, if applicable
-        int numParameters = parameterTypes.size();
-        Class<?>[] parameters = member.getParameterTypes();
+        if (this.parameterTypes != null) {
+          int numParameters = parameterTypes.size();
+          Class<?>[] parameters = member.getParameterTypes();
 
-        // Not exactly as many parameters as requested
-        if (numParameters != parameters.length)
-          return false;
-
-        // Parameters need to match in sequence
-        for (int i = 0; i < numParameters; i++) {
-          if (!parameterTypes.get(i).matches(parameters[i]))
+          // Not exactly as many parameters as requested
+          if (numParameters != parameters.length)
             return false;
+
+          // Parameters need to match in sequence
+          for (int i = 0; i < numParameters; i++) {
+            if (!parameterTypes.get(i).matches(parameters[i]))
+              return false;
+          }
         }
 
         // Check generic return parameters, if applicable
