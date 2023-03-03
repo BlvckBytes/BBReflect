@@ -32,7 +32,7 @@ import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.handle.FieldHandle;
 import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
-import org.bukkit.Bukkit;
+import me.blvckbytes.bbreflect.packets.IPacketOwner;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,16 +67,12 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
     this.receivers.remove(receiver);
   }
 
-  private @Nullable Object interceptIncoming(@Nullable String playerName, Object packet, Object channel) throws Exception {
-    if (playerName == null)
+  private @Nullable Object interceptIncoming(IPacketOwner owner, Object packet, Object channel) throws Exception {
+    Player player = owner.getPlayer();
+    if (player == null)
       return packet;
 
     if (C_PI_ITEM_NAME.isInstance(packet)) {
-      Player player = Bukkit.getPlayer(playerName);
-
-      if (player == null)
-        return packet;
-
       String name = (String) C_PI_ITEM_NAME__NAME.get(packet);
       for (FItemNameReceiver receiver : receivers)
         receiver.receive(player, name);

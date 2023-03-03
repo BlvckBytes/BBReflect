@@ -27,8 +27,14 @@ package me.blvckbytes.bbreflect.packets.communicator;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.function.Function;
+
 public interface IFakeSlotCommunicator {
 
-  void setFakeSlot(int slotId, boolean top, ItemStack item, Player player, int delayTicks);
+  void setFakeSlot(Player player, int slotId, boolean top, ItemStack item);
+
+  void blockWindowItems(Player player, Function<Integer, ItemStack> fakeItemProvider);
+
+  void unblockWindowItems(Player player);
 
 }

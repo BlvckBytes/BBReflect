@@ -32,7 +32,7 @@ import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.handle.FieldHandle;
 import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
-import org.bukkit.Bukkit;
+import me.blvckbytes.bbreflect.packets.IPacketOwner;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -75,17 +75,13 @@ public class WindowOpenCommunicator implements IWindowOpenCommunicator, Listener
     return windowId;
   }
 
-  private @Nullable Object interceptIncoming(@Nullable String playerName, Object packet, Object channel) throws Exception {
-    if (playerName == null)
+  private @Nullable Object interceptIncoming(IPacketOwner owner, Object packet, Object channel) throws Exception {
+    Player player = owner.getPlayer();
+    if (player == null)
       return packet;
 
     if (C_PI_CLOSE_WINDOW.isInstance(packet)) {
       int windowId = (int) C_PI_CLOSE_WINDOW__WINDOW_ID.get(packet);
-      Player player = Bukkit.getPlayer(playerName);
-
-      if (player == null)
-        return packet;
-
       Integer currentWindowId = topInventoryWindowIdByPlayer.get(player);
 
       if (currentWindowId == null)
@@ -98,17 +94,13 @@ public class WindowOpenCommunicator implements IWindowOpenCommunicator, Listener
     return packet;
   }
 
-  private @Nullable Object interceptOutgoing(@Nullable String playerName, Object packet, Object channel) throws Exception {
-    if (playerName == null)
+  private @Nullable Object interceptOutgoing(IPacketOwner owner, Object packet, Object channel) throws Exception {
+    Player player = owner.getPlayer();
+    if (player == null)
       return packet;
 
     if (C_PO_OPEN_WINDOW.isInstance(packet)) {
       int windowId = (int) C_PO_OPEN_WINDOW__WINDOW_ID.get(packet);
-      Player player = Bukkit.getPlayer(playerName);
-
-      if (player == null)
-        return packet;
-
       topInventoryWindowIdByPlayer.put(player, windowId);
     }
 
