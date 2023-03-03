@@ -191,6 +191,14 @@ public enum RClass {
     Class.forName("net.minecraft.resources.ResourceKey") :
     null
   ),
+  STATISTIC_MANAGER((ver, after) -> after ?
+    Class.forName("net.minecraft.stats.StatisticManager") :
+    null
+  ),
+  SCOREBOARD_CRITERIA((ver, after) -> after ?
+    Class.forName("net.minecraft.world.scores.criteria.IScoreboardCriteria") :
+    null
+  ),
   PACKET_DATA_SERIALIZER((ver, after) -> after ?
     Class.forName("net.minecraft.network.PacketDataSerializer") :
     Class.forName("net.minecraft.server." + ver + ".PacketDataSerializer")
@@ -322,6 +330,10 @@ public enum RClass {
   CLIENTBOUND_SYSTEM_CHAT_PACKET((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.ClientboundSystemChatPacket") :
     null
+  ),
+  PACKET_I_CLOSE_WINDOW((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInCloseWindow") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInCloseWindow")
   ),
   PACKET_I_FLYING((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayInFlying") :
