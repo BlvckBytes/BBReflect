@@ -26,6 +26,7 @@ package me.blvckbytes.bbreflect;
 
 import me.blvckbytes.bbreflect.patching.UtfPatcherClassLoader;
 import me.blvckbytes.bbreflect.version.ServerVersion;
+import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,14 +47,16 @@ public class ReflectionHelperFactory {
 
   private final boolean needsNettyPatching;
   private final ServerVersion version;
+  private final Plugin plugin;
   private final Class<?> reflectionHelperClass;
 
   /**
    * Create a new reflection helper factory which manages loading the reflection helper
    * through the custom class loader behind the scenes to hand out an interface representation
-   * @param parent Parent classloader (PluginClassLoader of bukkit)
+   * @param plugin Plugin reference
    */
-  public ReflectionHelperFactory(ClassLoader parent) throws Exception {
+  public ReflectionHelperFactory(Plugin plugin) throws Exception {
+    this.plugin = plugin;
     this.version = ServerVersion.current();
 
     // They used to inline netty on 1.7.x
@@ -68,7 +71,7 @@ public class ReflectionHelperFactory {
     // Pre-load the patched class for all subsequent make calls
     // FIXME: This custom classloader seems to produce weird behavior when reloading
     this.reflectionHelperClass = new UtfPatcherClassLoader(
-      parent, AFFECTED_FQN_LIST::contains, this::loaderPatcher
+      plugin.getClass().getClassLoader(), AFFECTED_FQN_LIST::contains, this::loaderPatcher
     ).loadClass(REFLECTION_HELPER_FQN);
   }
 
@@ -76,7 +79,9 @@ public class ReflectionHelperFactory {
    * Create a new instance of the reflection helper on the current server version
    */
   public IReflectionHelper makeHelper() throws Exception {
-    return (IReflectionHelper) reflectionHelperClass.getConstructor(ServerVersion.class).newInstance(version);
+    return (IReflectionHelper) reflectionHelperClass
+      .getConstructor(Plugin.class, ServerVersion.class)
+      .newInstance(this.plugin, version);
   }
 
   /**

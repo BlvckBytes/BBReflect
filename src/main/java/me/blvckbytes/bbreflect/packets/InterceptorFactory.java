@@ -340,7 +340,10 @@ public class InterceptorFactory implements IPacketOperator, Listener {
     if (!C_PACKET_LOGIN.isInstance(packet))
       return null;
 
-    return (String) F_PACKET_LOGIN__NAME.get(packet);
+    String name = (String) F_PACKET_LOGIN__NAME.get(packet);
+    interceptorByPlayerName.put(name, requester);
+
+    return name;
   }
 
   @Override

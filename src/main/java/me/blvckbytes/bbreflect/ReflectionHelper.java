@@ -36,7 +36,10 @@ import me.blvckbytes.bbreflect.packets.InterceptorFactory;
 import me.blvckbytes.bbreflect.packets.RawPacket;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import me.blvckbytes.utilitytypes.Tuple;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
@@ -65,9 +68,11 @@ public class ReflectionHelper implements IReflectionHelper {
   private final Constructor<?> javaLangObjectConstructor;
   private final Tuple<Object, Method> serializationConstructorFactory;
   private final Map<Class<?>, Constructor<?>> emptyConstructorCache;
+  private final Plugin plugin;
 
-  public ReflectionHelper(ServerVersion version) throws Exception {
+  public ReflectionHelper(Plugin plugin, ServerVersion version) throws Exception {
     this.version = version;
+    this.plugin = plugin;
     this.networkManagerAndChannelCache = new WeakHashMap<>();
     this.emptyConstructorCache = new HashMap<>();
 
@@ -173,6 +178,7 @@ public class ReflectionHelper implements IReflectionHelper {
 
     this.interceptorFactory = new InterceptorFactory(this, handlerName);
     this.interceptorFactory.setupInterception(interceptor::accept);
+    Bukkit.getPluginManager().registerEvents(this.interceptorFactory, plugin);
   }
 
   @Override
@@ -181,6 +187,7 @@ public class ReflectionHelper implements IReflectionHelper {
       return;
 
     this.interceptorFactory.cleanupInterception();
+    HandlerList.unregisterAll(this.interceptorFactory);
     this.interceptorFactory = null;
   }
 
