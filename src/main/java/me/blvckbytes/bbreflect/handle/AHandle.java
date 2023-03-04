@@ -24,7 +24,6 @@
 
 package me.blvckbytes.bbreflect.handle;
 
-import lombok.Getter;
 import me.blvckbytes.bbreflect.handle.predicate.FMemberPredicate;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +35,6 @@ import java.lang.reflect.Method;
 import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 
-@Getter
 public abstract class AHandle<T> {
 
   protected final T handle;
@@ -94,6 +92,18 @@ public abstract class AHandle<T> {
     this.handle = handle;
     this.handleType = type;
     this.version = version;
+  }
+
+  public T getHandle() {
+    return handle;
+  }
+
+  public Class<T> getHandleType() {
+    return handleType;
+  }
+
+  public ServerVersion getVersion() {
+    return version;
   }
 
   /**

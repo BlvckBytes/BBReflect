@@ -28,7 +28,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import lombok.Getter;
 import me.blvckbytes.bbreflect.handle.*;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.packets.IInterceptor;
@@ -51,7 +50,7 @@ import java.util.function.Consumer;
 
 public class ReflectionHelper implements IReflectionHelper {
 
-  @Getter private final ServerVersion version;
+  public final ServerVersion version;
 
   private final FieldHandle
     F_CRAFT_PLAYER__HANDLE,
@@ -262,6 +261,10 @@ public class ReflectionHelper implements IReflectionHelper {
     }
 
     return constructor.newInstance((Object[]) null);
+  }
+
+  public ServerVersion getVersion() {
+    return this.version;
   }
 
   private Tuple<Object, Method> getSerializationConstructorFactory() throws Exception {

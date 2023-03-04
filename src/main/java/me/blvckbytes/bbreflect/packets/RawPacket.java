@@ -23,8 +23,6 @@
  */
 package me.blvckbytes.bbreflect.packets;
 
-import lombok.Getter;
-
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -32,7 +30,6 @@ public class RawPacket extends OutputStream {
 
   public final byte[] bytes;
 
-  @Getter
   private int length;
 
   public RawPacket(byte[] bytes, int length) {
@@ -42,6 +39,10 @@ public class RawPacket extends OutputStream {
 
   public RawPacket(int bufferSize) {
     this.bytes = new byte[bufferSize];
+  }
+
+  public int getLength() {
+    return this.length;
   }
 
   @Override

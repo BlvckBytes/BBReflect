@@ -24,7 +24,6 @@
 
 package me.blvckbytes.bbreflect.version;
 
-import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,7 +31,6 @@ import java.lang.reflect.Field;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Getter
 public enum ServerVersion {
 
   V1_7_R0(1,   7, 0,   3),
@@ -97,11 +95,11 @@ public enum ServerVersion {
   ;
 
   private static final Pattern VERSION_PATTERN = Pattern.compile(".*\\(.*MC.\\s*([a-zA-z\\d\\-.]+).*");
-
-  private final int major, minor, release;
-  private final int protocol;
   private static final ServerVersion[] values = values();
-  @Getter private final String bukkit;
+
+  public final int major, minor, release;
+  public final int protocol;
+  public final String bukkit;
 
   ServerVersion(int major, int minor, int release, int protocol) {
     this.major = major;

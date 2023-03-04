@@ -24,15 +24,13 @@
 
 package me.blvckbytes.bbreflect.handle.predicate;
 
-import lombok.Getter;
 import me.blvckbytes.bbreflect.Primitives;
 
-@Getter
 public class ComparableType {
 
-  private final Class<?> type;
-  private final boolean ignoreBoxing;
-  private final Assignability assignability;
+  public final Class<?> type;
+  public final boolean ignoreBoxing;
+  public final Assignability assignability;
 
   /**
    * Create a new parameterized comparable type

@@ -25,7 +25,6 @@
 package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
-import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,10 +56,8 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private final IPacketOwner packetOwner;
 
-  @Setter
   private FPacketInterceptor inboundPacketInterceptor, outboundPacketInterceptor;
 
-  @Setter
   private FBytesInterceptor inboundBytesInterceptor, outboundBytesInterceptor;
 
   /**
@@ -245,5 +242,25 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       throw new IllegalStateException("Could not find the network manager");
 
     this.operator.sendPacket(packet, completion, networkManager);
+  }
+
+  @Override
+  public void setInboundPacketInterceptor(FPacketInterceptor interceptor) {
+    this.inboundPacketInterceptor = interceptor;
+  }
+
+  @Override
+  public void setOutboundPacketInterceptor(FPacketInterceptor interceptor) {
+    this.outboundPacketInterceptor = interceptor;
+  }
+
+  @Override
+  public void setInboundBytesInterceptor(FBytesInterceptor interceptor) {
+    this.inboundBytesInterceptor = interceptor;
+  }
+
+  @Override
+  public void setOutboundBytesInterceptor(FBytesInterceptor interceptor) {
+    this.outboundBytesInterceptor = interceptor;
   }
 }

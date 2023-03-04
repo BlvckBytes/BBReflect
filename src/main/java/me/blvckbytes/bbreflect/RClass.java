@@ -24,8 +24,6 @@
 
 package me.blvckbytes.bbreflect;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import me.blvckbytes.utilitytypes.FUnsafeBiFunction;
@@ -33,8 +31,6 @@ import me.blvckbytes.utilitytypes.FUnsafeBiFunction;
 import java.util.HashMap;
 import java.util.Map;
 
-@Getter
-@AllArgsConstructor
 public enum RClass {
   MINECRAFT_KEY((ver, after) -> after ?
     Class.forName("net.minecraft.resources.MinecraftKey") :
@@ -120,25 +116,25 @@ public enum RClass {
     Class.forName("net.minecraft.server." + ver + ".Scoreboard")
   ),
   CRAFT_COMMAND_MAP((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".command.CraftCommandMap")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".command.CraftCommandMap")
   ),
   CRAFT_BLOCK_DATA((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".block.data.CraftBlockData")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".block.data.CraftBlockData")
   ),
   CRAFT_BLOCK_STATE((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".block.CraftBlockState")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".block.CraftBlockState")
   ),
   CRAFT_WORLD((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".CraftWorld")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".CraftWorld")
   ),
   CRAFT_TEAM((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".scoreboard.CraftTeam")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".scoreboard.CraftTeam")
   ),
   CRAFT_SCOREBOARD((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".scoreboard.CraftScoreboard")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".scoreboard.CraftScoreboard")
   ),
   CRAFT_SCOREBOARD_MANAGER((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".scoreboard.CraftScoreboardManager")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".scoreboard.CraftScoreboardManager")
   ),
   PACKET((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.Packet") :
@@ -481,25 +477,25 @@ public enum RClass {
     Class.forName("net.minecraft.server." + ver + ".Container")
   ),
   CRAFT_ITEM_STACK((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".inventory.CraftItemStack")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".inventory.CraftItemStack")
   ),
   CRAFT_ENTITY((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".entity.CraftEntity")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".entity.CraftEntity")
   ),
   CRAFT_SERVER((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".CraftServer")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".CraftServer")
   ),
   CRAFT_MAP_VIEW((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".map.CraftMapView")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".map.CraftMapView")
   ),
   CRAFT_META_ITEM((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".inventory.CraftMetaItem")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".inventory.CraftMetaItem")
   ),
   CRAFT_PLAYER((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".entity.CraftPlayer")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".entity.CraftPlayer")
   ),
   CRAFT_ITEM((ver, after) ->
-    Class.forName("org.bukkit.craftbukkit." + ver.getBukkit() + ".entity.CraftItem")
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".entity.CraftItem")
   ),
   ENUM_GAME_MODE((ver, after) -> after ?
     Class.forName("net.minecraft.world.level.EnumGamemode") :
@@ -514,6 +510,10 @@ public enum RClass {
   private final FUnsafeBiFunction<ServerVersion, Boolean, Class<?>, ClassNotFoundException> resolve;
   private static final Map<RClass, ClassHandle> cache;
 
+  RClass(FUnsafeBiFunction<ServerVersion, Boolean, Class<?>, ClassNotFoundException> resolve) {
+    this.resolve = resolve;
+  }
+
   static {
     cache = new HashMap<>();
   }
@@ -524,7 +524,7 @@ public enum RClass {
     if (res != null)
       return res;
 
-    Class<?> c = resolve.apply(version, version.getMinor() >= 17);
+    Class<?> c = resolve.apply(version, version.minor >= 17);
 
     if (c == null)
       throw new ClassNotFoundException("Could not resolve the target class");
