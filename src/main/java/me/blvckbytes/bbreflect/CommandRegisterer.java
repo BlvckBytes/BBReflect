@@ -26,37 +26,30 @@ package me.blvckbytes.bbreflect;
 
 import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.handle.FieldHandle;
-import me.blvckbytes.bbreflect.handle.MethodHandle;
+import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
+import org.bukkit.command.CommandMap;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class CommandRegisterer {
 
-  private final Object CONST_COMMAND_MAP;
-  private final MethodHandle M_COMMAND_MAP__REGISTER;
+  private final CommandMap CONST_COMMAND_MAP;
   private final JavaPlugin plugin;
 
   public CommandRegisterer(JavaPlugin plugin, IReflectionHelper reflectionHelper) throws Exception {
     this.plugin = plugin;
 
-    ClassHandle C_CRAFT_COMMAND_MAP = reflectionHelper.getClass(RClass.CRAFT_COMMAND_MAP);
     ClassHandle C_CRAFT_SERVER = reflectionHelper.getClass(RClass.CRAFT_SERVER);
 
     FieldHandle F_CRAFT_SERVER__CRAFT_COMMAND_MAP = C_CRAFT_SERVER.locateField()
-      .withType(C_CRAFT_COMMAND_MAP)
+      .withType(CommandMap.class, false, Assignability.TYPE_TO_TARGET)
       .required();
 
-    CONST_COMMAND_MAP = F_CRAFT_SERVER__CRAFT_COMMAND_MAP.get(Bukkit.getServer());
-
-    M_COMMAND_MAP__REGISTER = C_CRAFT_COMMAND_MAP.locateMethod()
-      .withAllowSuperclass(true)
-      .withPublic(true)
-      .withParameters(String.class, Command.class)
-      .required();
+    CONST_COMMAND_MAP = (CommandMap) F_CRAFT_SERVER__CRAFT_COMMAND_MAP.get(Bukkit.getServer());
   }
 
-  public void register(Command command) throws Exception {
-    M_COMMAND_MAP__REGISTER.invoke(CONST_COMMAND_MAP, plugin.getName(), command);
+  public void register(Command command) {
+    CONST_COMMAND_MAP.register(plugin.getName(), command);
   }
 }
