@@ -36,6 +36,7 @@ import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
 import me.blvckbytes.bbreflect.packets.IPacketOwner;
+import me.blvckbytes.bbreflect.version.ServerVersion;
 import me.blvckbytes.bukkitboilerplate.ILogger;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -44,7 +45,9 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializable, ICleanable, Listener {
@@ -52,10 +55,12 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
   private static final ItemStack ITEM_AIR = new ItemStack(Material.AIR, 1);
 
   private final Map<Player, Function<Integer, ItemStack>> windowItemsBlockedPlayers;
+  private final Set<Object> sentSetSlotPackets;
 
   private final ConstructorHandle CT_PO_SET_SLOT;
   private final ClassHandle C_PO_SET_SLOT, C_PO_WINDOW_ITEMS;
-  private final FieldHandle F_PO_SET_SLOT__WINDOW_ID, F_PO_SET_SLOT__SLOT_ID, F_PO_SET_SLOT__ITEM;
+  private final FieldHandle F_PO_SET_SLOT__WINDOW_ID, F_PO_SET_SLOT__ITEM, F_PO_SET_SLOT__STATE_ID_OR_SLOT_ID;
+  private final @Nullable FieldHandle F_PO_SET_SLOT__SLOT_ID;
   private final MethodHandle M_AS_NMS_COPY;
 
   private final IReflectionHelper reflectionHelper;
@@ -74,6 +79,7 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
     this.logger = logger;
     this.windowOpenWatcher = windowOpenWatcher;
     this.windowItemsBlockedPlayers = new HashMap<>();
+    this.sentSetSlotPackets = new HashSet<>();
 
     C_PO_WINDOW_ITEMS = reflectionHelper.getClass(RClass.PACKET_O_WINDOW_ITEMS);
     C_PO_SET_SLOT = reflectionHelper.getClass(RClass.PACKET_O_SET_SLOT);
@@ -94,21 +100,38 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
       )
      */
     CT_PO_SET_SLOT = C_PO_SET_SLOT.locateConstructor()
-      .withParameters(int.class, int.class)
+      .withVersionRange(ServerVersion.V1_18_R0, null)
+      .withParameters(int.class, int.class, int.class)
       .withParameter(C_ITEM_STACK, false, Assignability.TYPE_TO_TARGET)
       .withCallTransformer(args -> (
-        new Object[] { args[0], args[1], M_AS_NMS_COPY.invoke(null, args[2]) }
+        // Looks like just setting the state ID to zero works out in all cases
+        // These kind of user interfaces this is used on don't really carry state
+        new Object[] { args[0], 0, args[1], M_AS_NMS_COPY.invoke(null, args[2]) }
       ), M_AS_NMS_COPY)
+      .orElse(() -> (
+         C_PO_SET_SLOT.locateConstructor()
+          .withVersionRange(null, ServerVersion.V1_17_R0)
+          .withParameters(int.class, int.class)
+          .withParameter(C_ITEM_STACK, false, Assignability.TYPE_TO_TARGET)
+          .withCallTransformer(args -> (
+            new Object[] { args[0], args[1], M_AS_NMS_COPY.invoke(null, args[2]) }
+          ), M_AS_NMS_COPY)
+      ))
       .required();
 
     F_PO_SET_SLOT__WINDOW_ID = C_PO_SET_SLOT.locateField()
       .withType(int.class)
       .required();
 
-    F_PO_SET_SLOT__SLOT_ID = C_PO_SET_SLOT.locateField()
+    F_PO_SET_SLOT__STATE_ID_OR_SLOT_ID = C_PO_SET_SLOT.locateField()
       .withType(int.class)
       .withSkip(1)
       .required();
+
+    F_PO_SET_SLOT__SLOT_ID = C_PO_SET_SLOT.locateField()
+      .withType(int.class)
+      .withSkip(2)
+      .optional();
 
     F_PO_SET_SLOT__ITEM = C_PO_SET_SLOT.locateField()
       .withType(C_ITEM_STACK)
@@ -132,6 +155,7 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
         item = ITEM_AIR;
 
       Object packet = CT_PO_SET_SLOT.newInstance(windowId, slotId, item);
+      sentSetSlotPackets.add(packet);
 
       this.reflectionHelper.sendPacket(player, packet, null);
     } catch (Exception e) {
@@ -162,13 +186,22 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
     }
 
     if (C_PO_SET_SLOT.isInstance(packet)) {
+      // Don't modify packets that we've sent ourselves
+      if (sentSetSlotPackets.remove(packet))
+        return packet;
+
       Function<Integer, ItemStack> fakeItemSupplier = windowItemsBlockedPlayers.get(player);
 
       if (fakeItemSupplier == null)
         return packet;
 
       int windowId = (int) F_PO_SET_SLOT__WINDOW_ID.get(packet);
-      int slotId = (int) F_PO_SET_SLOT__SLOT_ID.get(packet);
+      int slotId;
+
+      if (F_PO_SET_SLOT__SLOT_ID != null)
+        slotId = (int) F_PO_SET_SLOT__SLOT_ID.get(packet);
+      else
+        slotId = (int) F_PO_SET_SLOT__STATE_ID_OR_SLOT_ID.get(packet);
 
       // Setting item on cursor
       // No need to intervene, as fake items are always cancelled and so this
