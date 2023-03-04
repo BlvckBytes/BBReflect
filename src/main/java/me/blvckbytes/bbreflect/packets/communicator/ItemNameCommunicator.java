@@ -24,15 +24,19 @@
 
 package me.blvckbytes.bbreflect.packets.communicator;
 
+import io.netty.buffer.ByteBuf;
 import me.blvckbytes.autowirer.ICleanable;
 import me.blvckbytes.autowirer.IInitializable;
 import me.blvckbytes.bbreflect.IReflectionHelper;
 import me.blvckbytes.bbreflect.RClass;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.handle.FieldHandle;
+import me.blvckbytes.bbreflect.handle.MethodHandle;
 import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
 import me.blvckbytes.bbreflect.packets.IPacketOwner;
+import me.blvckbytes.bbreflect.version.ServerVersion;
+import me.blvckbytes.bukkitboilerplate.ILogger;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,19 +45,46 @@ import java.util.Set;
 
 public class ItemNameCommunicator implements IItemNameCommunicator, IInitializable, ICleanable {
 
-  private final ClassHandle C_PI_ITEM_NAME;
-  private final FieldHandle C_PI_ITEM_NAME__NAME;
+  private static final String ITEM_NAME_KEY = "MC|ItemName";
+
+  private final @Nullable ClassHandle C_PI_ITEM_NAME;
+  private final @Nullable FieldHandle C_PI_ITEM_NAME__NAME;
+  private final MethodHandle M_PACKET_DATA_SERIALIZER__READ_STRING;
+
   private final Set<FItemNameReceiver> receivers;
   private final IPacketInterceptorRegistry packetInterceptor;
+  private final ICustomPayloadCommunicator customPayloadCommunicator;
+  private final ILogger logger;
 
-  public ItemNameCommunicator(IReflectionHelper reflectionHelper, IPacketInterceptorRegistry packetInterceptor) throws Exception {
+  public ItemNameCommunicator(
+    IReflectionHelper reflectionHelper,
+    IPacketInterceptorRegistry packetInterceptor,
+    ICustomPayloadCommunicator customPayloadCommunicator,
+    ILogger logger
+  ) throws Exception {
+    this.logger = logger;
     this.packetInterceptor = packetInterceptor;
+    this.customPayloadCommunicator = customPayloadCommunicator;
     this.receivers = new HashSet<>();
 
-    C_PI_ITEM_NAME = reflectionHelper.getClass(RClass.PACKET_I_ITEM_NAME);
+    if (reflectionHelper.getVersion().compare(ServerVersion.V1_13_R0) >= 0) {
+      C_PI_ITEM_NAME = reflectionHelper.getClass(RClass.PACKET_I_ITEM_NAME);
+      C_PI_ITEM_NAME__NAME = C_PI_ITEM_NAME.locateField()
+        .withType(String.class)
+        .required();
+    }
 
-    C_PI_ITEM_NAME__NAME = C_PI_ITEM_NAME.locateField()
-      .withType(String.class)
+    // Before 1.13, there was no PacketPlayInItemName
+    else {
+      C_PI_ITEM_NAME = null;
+      C_PI_ITEM_NAME__NAME = null;
+    }
+
+    ClassHandle C_PACKET_DATA_SERIALIZER = reflectionHelper.getClass(RClass.PACKET_DATA_SERIALIZER);
+    M_PACKET_DATA_SERIALIZER__READ_STRING = C_PACKET_DATA_SERIALIZER.locateMethod()
+      .withPublic(true)
+      .withReturnType(String.class)
+      .withParameter(int.class)
       .required();
   }
 
@@ -67,12 +98,31 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
     this.receivers.remove(receiver);
   }
 
+  void receiveCustomPayloadData(IPacketOwner owner, String key, Object data) {
+    if (!key.equals(ITEM_NAME_KEY))
+      return;
+
+    Player player = owner.getPlayer();
+    if (player == null)
+      return;
+
+    try {
+      String name = (String) M_PACKET_DATA_SERIALIZER__READ_STRING.invoke(data, 32767);
+      ((ByteBuf) data).resetReaderIndex();
+      for (FItemNameReceiver receiver : receivers)
+        receiver.receive(player, name);
+    } catch (Exception e) {
+      logger.logError(e);
+    }
+  }
+
   private @Nullable Object interceptIncoming(IPacketOwner owner, Object packet, Object channel) throws Exception {
     Player player = owner.getPlayer();
     if (player == null)
       return packet;
 
-    if (C_PI_ITEM_NAME.isInstance(packet)) {
+    if (C_PI_ITEM_NAME != null && C_PI_ITEM_NAME.isInstance(packet)) {
+      assert C_PI_ITEM_NAME__NAME != null;
       String name = (String) C_PI_ITEM_NAME__NAME.get(packet);
       for (FItemNameReceiver receiver : receivers)
         receiver.receive(player, name);
@@ -84,10 +134,15 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
   @Override
   public void cleanup() {
     this.packetInterceptor.unregisterInboundPacketInterceptor(this::interceptIncoming);
+    this.customPayloadCommunicator.unregisterReceiver(this::receiveCustomPayloadData);
   }
 
   @Override
   public void initialize() {
     this.packetInterceptor.registerInboundPacketInterceptor(this::interceptIncoming, EPriority.LOWEST);
+
+    // Packet doesn't exist yet, get the name through custom payload packets
+    if (C_PI_ITEM_NAME == null)
+      this.customPayloadCommunicator.registerReceiver(this::receiveCustomPayloadData);
   }
 }
