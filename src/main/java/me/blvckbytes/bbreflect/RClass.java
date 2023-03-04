@@ -36,6 +36,15 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public enum RClass {
+  MINECRAFT_KEY((ver, after) -> after ?
+    Class.forName("net.minecraft.resources.MinecraftKey") :
+    Class.forName("net.minecraft.server." + ver + ".MinecraftKey")
+  ),
+  BYTE_BUF((ver, after) -> {
+    if (ver.compare(ServerVersion.V1_8_R0) < 0)
+      return Class.forName("net.minecraft.util.io.netty.buffer.ByteBuf");
+    return Class.forName("io.netty.buffer.ByteBuf");
+  }),
   VEC3D((ver, after) -> after ?
     Class.forName("net.minecraft.world.phys.Vec3D") :
     Class.forName("net.minecraft.server." + ver + ".Vec3D")
@@ -362,6 +371,10 @@ public enum RClass {
   PACKET_I_ITEM_NAME((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayInItemName") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayInItemName")
+  ),
+  PACKET_I_CUSTOM_PAYLOAD((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInCustomPayload") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInCustomPayload")
   ),
   PACKET_I_HANDSHAKE((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.handshake.PacketHandshakingInSetProtocol") :
