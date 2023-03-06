@@ -24,15 +24,19 @@
 
 package me.blvckbytes.bbreflect.packets.communicator;
 
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
-public interface IFakeSlotCommunicator {
+@FunctionalInterface
+public interface FFakeItemSupplier {
 
-  void setFakeSlot(Player player, int slotId, boolean top, ItemStack item);
-
-  void blockWindowItems(Player player, FFakeItemSupplier supplier);
-
-  void unblockWindowItems(Player player);
+  /**
+   * Supplies the fake item which has been assigned to a slot by the manager
+   * which makes use of this communicator.
+   * @param rawSlot Raw slot ID to look up in
+   * @return Null if that slot is not a fake slot, a {@link org.bukkit.Material#AIR}
+   *         ItemStack if the slot is currently vacant, or the actual fake item
+   */
+  @Nullable ItemStack apply(int rawSlot);
 
 }

@@ -48,13 +48,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializable, ICleanable, Listener {
 
   private static final ItemStack ITEM_AIR = new ItemStack(Material.AIR, 1);
 
-  private final Map<Player, Function<Integer, ItemStack>> windowItemsBlockedPlayers;
+  private final Map<Player, FFakeItemSupplier> windowItemsBlockedPlayers;
   private final Set<Object> sentSetSlotPackets;
 
   private final ConstructorHandle CT_PO_SET_SLOT;
@@ -164,8 +163,8 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
   }
 
   @Override
-  public void blockWindowItems(Player player, Function<Integer, ItemStack> fakeItemProvider) {
-    windowItemsBlockedPlayers.put(player, fakeItemProvider);
+  public void blockWindowItems(Player player, FFakeItemSupplier supplier) {
+    windowItemsBlockedPlayers.put(player, supplier);
   }
 
   @Override
@@ -190,7 +189,7 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
       if (sentSetSlotPackets.remove(packet))
         return packet;
 
-      Function<Integer, ItemStack> fakeItemSupplier = windowItemsBlockedPlayers.get(player);
+      FFakeItemSupplier fakeItemSupplier = windowItemsBlockedPlayers.get(player);
 
       if (fakeItemSupplier == null)
         return packet;
@@ -212,7 +211,7 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
       ItemStack fakeItem = fakeItemSupplier.apply(slotId);
 
       if (fakeItem == null)
-        fakeItem = ITEM_AIR;
+        return packet;
 
       F_PO_SET_SLOT__ITEM.set(packet, M_AS_NMS_COPY.invoke(null, fakeItem));
     }
