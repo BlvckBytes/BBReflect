@@ -37,7 +37,6 @@ import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
 import me.blvckbytes.bbreflect.packets.IPacketOwner;
 import me.blvckbytes.bbreflect.version.ServerVersion;
-import me.blvckbytes.bukkitboilerplate.ILogger;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -48,6 +47,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializable, ICleanable, Listener {
 
@@ -63,13 +64,13 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
   private final MethodHandle M_AS_NMS_COPY;
 
   private final IReflectionHelper reflectionHelper;
-  private final ILogger logger;
+  private final Logger logger;
   private final IWindowOpenCommunicator windowOpenWatcher;
   private final IPacketInterceptorRegistry interceptorRegistry;
 
   public FakeSlotCommunicator(
     IReflectionHelper reflectionHelper,
-    ILogger logger,
+    Logger logger,
     IWindowOpenCommunicator windowOpenWatcher,
     IPacketInterceptorRegistry interceptorRegistry
   ) throws Exception {
@@ -158,7 +159,7 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
 
       this.reflectionHelper.sendPacket(player, packet, null);
     } catch (Exception e) {
-      this.logger.logError(e);
+      this.logger.log(Level.SEVERE, e, () -> "Could not set a fake slot");
     }
   }
 

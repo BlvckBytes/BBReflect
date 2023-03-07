@@ -36,12 +36,13 @@ import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
 import me.blvckbytes.bbreflect.packets.IPacketOwner;
 import me.blvckbytes.bbreflect.version.ServerVersion;
-import me.blvckbytes.bukkitboilerplate.ILogger;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ItemNameCommunicator implements IItemNameCommunicator, IInitializable, ICleanable {
 
@@ -54,13 +55,13 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
   private final Set<FItemNameReceiver> receivers;
   private final IPacketInterceptorRegistry packetInterceptor;
   private final ICustomPayloadCommunicator customPayloadCommunicator;
-  private final ILogger logger;
+  private final Logger logger;
 
   public ItemNameCommunicator(
     IReflectionHelper reflectionHelper,
     IPacketInterceptorRegistry packetInterceptor,
     ICustomPayloadCommunicator customPayloadCommunicator,
-    ILogger logger
+    Logger logger
   ) throws Exception {
     this.logger = logger;
     this.packetInterceptor = packetInterceptor;
@@ -112,7 +113,7 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
       for (FItemNameReceiver receiver : receivers)
         receiver.receive(player, name);
     } catch (Exception e) {
-      logger.logError(e);
+      this.logger.log(Level.SEVERE, e, () -> "Could not process custom payload data");
     }
   }
 
