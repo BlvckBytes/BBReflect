@@ -25,6 +25,9 @@
 package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
+import me.blvckbytes.bbreflect.patching.FPacketEncoderFactory;
+import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
+import me.blvckbytes.bbreflect.patching.CustomDataSerializer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,16 +63,22 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private FBytesInterceptor inboundBytesInterceptor, outboundBytesInterceptor;
 
+  private FMethodInterceptionHandler methodInterceptionHandler;
+
+  private final FPacketEncoderFactory encoderFactory;
+
   /**
    * Create a new packet interceptor on top of a network channel
+   * @param encoderFactory Factory function to create new custom packet encoders
    * @param channel Underlying network channel to intercept data on
    * @param player Involved player, if already known at the time of instantiation
    * @param operator External packet operator which does all reflective access
    */
-  public Interceptor(Channel channel, @Nullable Player player, IPacketOperator operator) {
+  public Interceptor(FPacketEncoderFactory encoderFactory, Channel channel, @Nullable Player player, IPacketOperator operator) {
     this.playerReference = player;
     this.channel = new WeakReference<>(channel);
     this.operator = operator;
+    this.encoderFactory = encoderFactory;
 
     this.packetOwner = new IPacketOwner() {
 
@@ -163,6 +172,9 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     this.handlerName = name;
 
     ifPipePresent(pipe -> {
+
+      pipe.channel().attr(CustomDataSerializer.HANDLER_KEY).set(() -> this.methodInterceptionHandler);
+
       // The network manager instance is also registered within the
       // pipe, get it by it's name to have a reference available
       networkManager = pipe.get("packet_handler");
@@ -189,6 +201,14 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
         return message;
       }));
+
+      // Get the next name to add before in order to end up at the same location
+      int encoderIndex = pipe.names().indexOf("encoder");
+      String nextName = pipe.names().get(encoderIndex + 1);
+
+      Object previousEncoder = pipe.remove("encoder");
+      ChannelHandler newEncoder = (ChannelHandler) encoderFactory.create(previousEncoder);
+      pipe.addBefore(nextName, "encoder", newEncoder);
 
       pipe.addAfter("encoder", this.handlerName + PIPE_RAW_PACKET_ENCODER_NAME, new RawPacketEncoder());
 
@@ -262,5 +282,10 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   @Override
   public void setOutboundBytesInterceptor(FBytesInterceptor interceptor) {
     this.outboundBytesInterceptor = interceptor;
+  }
+
+  @Override
+  public void setMethodInterceptionHandler(FMethodInterceptionHandler handler) {
+    this.methodInterceptionHandler = handler;
   }
 }

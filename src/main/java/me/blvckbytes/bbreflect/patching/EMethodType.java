@@ -22,23 +22,9 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect.packets;
+package me.blvckbytes.bbreflect.patching;
 
-import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
-import org.jetbrains.annotations.Nullable;
-
-public interface IInterceptor {
-
-  void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
-
-  void setInboundPacketInterceptor(FPacketInterceptor interceptor);
-
-  void setOutboundPacketInterceptor(FPacketInterceptor interceptor);
-
-  void setInboundBytesInterceptor(FBytesInterceptor interceptor);
-
-  void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
-
-  void setMethodInterceptionHandler(FMethodInterceptionHandler handler);
-
+public enum EMethodType {
+  NBT_TAG_COMPOUND_HEAD,
+  NBT_TAG_COMPOUND_TAIL
 }

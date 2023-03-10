@@ -27,9 +27,13 @@ package me.blvckbytes.bbreflect.packets;
 import io.netty.channel.*;
 import me.blvckbytes.bbreflect.*;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
+import me.blvckbytes.bbreflect.handle.ConstructorHandle;
 import me.blvckbytes.bbreflect.handle.FieldHandle;
 import me.blvckbytes.bbreflect.handle.MethodHandle;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
+import me.blvckbytes.bbreflect.patching.ByteArrayClassLoader;
+import me.blvckbytes.bbreflect.patching.CustomDataSerializer;
+import me.blvckbytes.bbreflect.patching.PacketEncoderClassPatcher;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -50,10 +54,11 @@ public class InterceptorFactory implements IPacketOperator, Listener {
 
   private final ClassHandle C_PACKET_LOGIN;
   private final MethodHandle M_CRAFT_PLAYER__HANDLE;
+  private final ConstructorHandle CT_NEW_PACKET_ENCODER;
 
   private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION,
     F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER,
-    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME;
+    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME, F_PACKET_ENCODER__PROTOCOL_DIRECTION;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
   private final Map<String, Interceptor> interceptorByPlayerName;
@@ -68,6 +73,21 @@ public class InterceptorFactory implements IPacketOperator, Listener {
     this.channelHandlers = new HashMap<>();
     this.interceptorByPlayerName = new HashMap<>();
     this.interceptorByPlayer = new HashMap<>();
+
+    Class<?> newSerializerClass = CustomDataSerializer.class;
+    ClassHandle C_PACKET_ENCODER = helper.getClass(RClass.PACKET_ENCODER);
+    ClassHandle C_PROTOCOL_DIRECTION = helper.getClass(RClass.ENUM_PROTOCOL_DIRECTION);
+
+    F_PACKET_ENCODER__PROTOCOL_DIRECTION = C_PACKET_ENCODER.locateField()
+      .withType(C_PROTOCOL_DIRECTION)
+      .required();
+
+    ByteArrayClassLoader byteArrayClassLoader = new ByteArrayClassLoader(getClass().getClassLoader());
+    Class<?> newEncoderClass = new PacketEncoderClassPatcher(helper, newSerializerClass).patchAndLoad(byteArrayClassLoader::defineClass);
+
+    CT_NEW_PACKET_ENCODER = ClassHandle.of(newEncoderClass, helper.getVersion()).locateConstructor()
+      .withParameters(C_PROTOCOL_DIRECTION)
+      .required();
 
     ClassHandle C_CRAFT_PLAYER = helper.getClass(RClass.CRAFT_PLAYER);
     ClassHandle C_ENTITY_PLAYER = helper.getClass(RClass.ENTITY_PLAYER);
@@ -232,13 +252,27 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   }
 
   /**
+   * Create a new custom packet encoder based on values from the previous instance
+   */
+  private Object createNewPacketEncoder(Object previousInstance) {
+    try {
+      Object direction = F_PACKET_ENCODER__PROTOCOL_DIRECTION.get(previousInstance);
+      return CT_NEW_PACKET_ENCODER.newInstance(direction);
+    } catch (Exception e) {
+      IllegalStateException ise = new IllegalStateException("Could not create a custom packet encoder instance");
+      ise.addSuppressed(e);
+      throw ise;
+    }
+  }
+
+  /**
    * Attaches an interceptor on a specific channel with the provided handler name
    * @param channel Channel to attach an interceptor to
    * @param player Owning player, if it's already known at the time of instantiation
    * @return The attached interceptor instance
    */
   private Interceptor attachInterceptor(Channel channel, @Nullable Player player) {
-    Interceptor interceptor = new Interceptor(channel, player, this);
+    Interceptor interceptor = new Interceptor(this::createNewPacketEncoder, channel, player, this);
 
     interceptor.attach(handlerName);
     interceptors.add(interceptor);

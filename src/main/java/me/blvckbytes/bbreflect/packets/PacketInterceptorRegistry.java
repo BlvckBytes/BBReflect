@@ -24,8 +24,11 @@
 
 package me.blvckbytes.bbreflect.packets;
 
+import io.netty.channel.ChannelHandlerContext;
 import me.blvckbytes.autowirer.ICleanable;
 import me.blvckbytes.bbreflect.IReflectionHelper;
+import me.blvckbytes.bbreflect.patching.EMethodType;
+import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,6 +37,7 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
   private final IReflectionHelper reflectionHelper;
   private final PrioritizedSet<FPacketInterceptor> inboundPacketInterceptors, outboundPacketInterceptors;
   private final PrioritizedSet<FBytesInterceptor> inboundBytesInterceptors, outboundBytesInterceptors;
+  private final PrioritizedSet<FMethodInterceptionHandler> methodInterceptionHandlers;
 
   public PacketInterceptorRegistry(
     JavaPlugin plugin,
@@ -45,6 +49,7 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     this.outboundPacketInterceptors = new PrioritizedSet<>();
     this.inboundBytesInterceptors = new PrioritizedSet<>();
     this.outboundBytesInterceptors = new PrioritizedSet<>();
+    this.methodInterceptionHandlers = new PrioritizedSet<>();
 
     reflectionHelper.setupInterception(plugin.getName(), this::setupInterceptor);
   }
@@ -94,6 +99,16 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     this.outboundBytesInterceptors.remove(interceptor);
   }
 
+  @Override
+  public void registerMethodInterceptionHandler(FMethodInterceptionHandler handler, EPriority priority) {
+    this.methodInterceptionHandlers.add(handler, priority);
+  }
+
+  @Override
+  public void unregisterMethodInterceptionHandler(FMethodInterceptionHandler handler) {
+    this.methodInterceptionHandlers.remove(handler);
+  }
+
   private @Nullable Object callPacketInterceptors(Iterable<FPacketInterceptor> interceptors, IPacketOwner owner, Object packet, Object channel) throws Exception {
     Object resultingPacket = packet;
 
@@ -118,10 +133,24 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     return resultingBuffer;
   }
 
+   private @Nullable Object callMethodInterceptorHandlers(EMethodType type, ChannelHandlerContext context, @Nullable Object input) {
+    if (input == null)
+      return null;
+
+     for (FMethodInterceptionHandler methodInterceptionHandler : methodInterceptionHandlers) {
+       input = methodInterceptionHandler.handle(type, context, input);
+       if (input == null)
+         break;
+     }
+
+    return input;
+   }
+
   private void setupInterceptor(IInterceptor interceptor) {
     interceptor.setInboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(inboundPacketInterceptors, owner, packet, channel));
     interceptor.setOutboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(outboundPacketInterceptors, owner, packet, channel));
     interceptor.setInboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(inboundBytesInterceptors, owner, buffer, channel));
     interceptor.setOutboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(outboundBytesInterceptors, owner, buffer, channel));
+    interceptor.setMethodInterceptionHandler(this::callMethodInterceptorHandlers);
   }
 }

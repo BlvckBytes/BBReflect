@@ -22,23 +22,15 @@
  * SOFTWARE.
  */
 
-package me.blvckbytes.bbreflect.packets;
+package me.blvckbytes.bbreflect.patching;
 
-import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
-import org.jetbrains.annotations.Nullable;
+public class ByteArrayClassLoader extends ClassLoader {
 
-public interface IInterceptor {
+  public ByteArrayClassLoader(ClassLoader parent) {
+    super(parent);
+  }
 
-  void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
-
-  void setInboundPacketInterceptor(FPacketInterceptor interceptor);
-
-  void setOutboundPacketInterceptor(FPacketInterceptor interceptor);
-
-  void setInboundBytesInterceptor(FBytesInterceptor interceptor);
-
-  void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
-
-  void setMethodInterceptionHandler(FMethodInterceptionHandler handler);
-
+  public Class<?> defineClass(String name, byte[] bytes) {
+    return defineClass(name, bytes, 0, bytes.length);
+  }
 }
