@@ -25,15 +25,16 @@
 package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
+import io.netty.util.AttributeKey;
 import me.blvckbytes.bbreflect.patching.FPacketEncoderFactory;
 import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
-import me.blvckbytes.bbreflect.patching.CustomDataSerializer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
@@ -46,6 +47,12 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   private static final String[] AVAILABLE_PIPE_NAMES = {
     PIPE_PACKET_HANDLER_NAME, PIPE_RAW_PACKET_ENCODER_NAME, PIPE_BINARY_DECODER_NAME, PIPE_BINARY_ENCODER_NAME
   };
+
+  public static final AttributeKey<Supplier<FMethodInterceptionHandler>> HANDLER_KEY;
+
+  static {
+    HANDLER_KEY = AttributeKey.valueOf("method_interception_handler");
+  }
 
   // Don't keep closed channels from being garbage-collected
   private final WeakReference<Channel> channel;
@@ -67,6 +74,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private final FPacketEncoderFactory encoderFactory;
 
+  // TODO: Add a feature flag enum set in order to control features (raw packet encoder, intercepted packet encoder, binary interceptors, packet interceptors)
   /**
    * Create a new packet interceptor on top of a network channel
    * @param encoderFactory Factory function to create new custom packet encoders
@@ -173,7 +181,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
     ifPipePresent(pipe -> {
 
-      pipe.channel().attr(CustomDataSerializer.HANDLER_KEY).set(() -> this.methodInterceptionHandler);
+      pipe.channel().attr(HANDLER_KEY).set(() -> this.methodInterceptionHandler);
 
       // The network manager instance is also registered within the
       // pipe, get it by it's name to have a reference available

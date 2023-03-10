@@ -26,5 +26,7 @@ package me.blvckbytes.bbreflect.patching;
 
 public enum EMethodType {
   NBT_TAG_COMPOUND_HEAD,
-  NBT_TAG_COMPOUND_TAIL
+  NBT_TAG_COMPOUND_TAIL,
+  I_CHAT_BASE_COMPONENT_HEAD,
+  I_CHAT_BASE_COMPONENT_TAIL
 }

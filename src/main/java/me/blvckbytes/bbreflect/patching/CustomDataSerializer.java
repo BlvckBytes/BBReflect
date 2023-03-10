@@ -26,20 +26,13 @@ package me.blvckbytes.bbreflect.patching;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.AttributeKey;
+import me.blvckbytes.bbreflect.packets.Interceptor;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketDataSerializer;
+import net.minecraft.network.chat.IChatBaseComponent;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.Supplier;
-
 public class CustomDataSerializer extends PacketDataSerializer {
-
-  public static final AttributeKey<Supplier<FMethodInterceptionHandler>> HANDLER_KEY;
-
-  static {
-    HANDLER_KEY = AttributeKey.valueOf("method_interception_handler");
-  }
 
   private final ChannelHandlerContext context;
 
@@ -50,7 +43,7 @@ public class CustomDataSerializer extends PacketDataSerializer {
 
   @Override
   public PacketDataSerializer a(@Nullable NBTTagCompound nbttagcompound) {
-    FMethodInterceptionHandler interceptionHandler = context.channel().attr(HANDLER_KEY).get().get();
+    FMethodInterceptionHandler interceptionHandler = context.channel().attr(Interceptor.HANDLER_KEY).get().get();
 
     if (interceptionHandler != null)
       nbttagcompound = (NBTTagCompound) interceptionHandler.handle(EMethodType.NBT_TAG_COMPOUND_HEAD, context, nbttagcompound);
@@ -59,6 +52,21 @@ public class CustomDataSerializer extends PacketDataSerializer {
 
     if (interceptionHandler != null)
       interceptionHandler.handle(EMethodType.NBT_TAG_COMPOUND_TAIL, context, nbttagcompound);
+
+    return this;
+  }
+
+  @Override
+  public PacketDataSerializer a(IChatBaseComponent ichatbasecomponent) {
+    FMethodInterceptionHandler interceptionHandler = context.channel().attr(Interceptor.HANDLER_KEY).get().get();
+
+    if (interceptionHandler != null)
+      ichatbasecomponent = (IChatBaseComponent) interceptionHandler.handle(EMethodType.I_CHAT_BASE_COMPONENT_HEAD, context, ichatbasecomponent);
+
+    super.a(ichatbasecomponent);
+
+    if (interceptionHandler != null)
+      interceptionHandler.handle(EMethodType.I_CHAT_BASE_COMPONENT_TAIL, context, ichatbasecomponent);
 
     return this;
   }

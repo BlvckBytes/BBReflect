@@ -32,7 +32,6 @@ import me.blvckbytes.bbreflect.handle.FieldHandle;
 import me.blvckbytes.bbreflect.handle.MethodHandle;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.patching.ByteArrayClassLoader;
-import me.blvckbytes.bbreflect.patching.CustomDataSerializer;
 import me.blvckbytes.bbreflect.patching.PacketEncoderClassPatcher;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
@@ -74,7 +73,6 @@ public class InterceptorFactory implements IPacketOperator, Listener {
     this.interceptorByPlayerName = new HashMap<>();
     this.interceptorByPlayer = new HashMap<>();
 
-    Class<?> newSerializerClass = CustomDataSerializer.class;
     ClassHandle C_PACKET_ENCODER = helper.getClass(RClass.PACKET_ENCODER);
     ClassHandle C_PROTOCOL_DIRECTION = helper.getClass(RClass.ENUM_PROTOCOL_DIRECTION);
 
@@ -83,7 +81,7 @@ public class InterceptorFactory implements IPacketOperator, Listener {
       .required();
 
     ByteArrayClassLoader byteArrayClassLoader = new ByteArrayClassLoader(getClass().getClassLoader());
-    Class<?> newEncoderClass = new PacketEncoderClassPatcher(helper, newSerializerClass).patchAndLoad(byteArrayClassLoader::defineClass);
+    Class<?> newEncoderClass = new PacketEncoderClassPatcher(helper).patchAndLoad(byteArrayClassLoader::defineClass);
 
     CT_NEW_PACKET_ENCODER = ClassHandle.of(newEncoderClass, helper.getVersion()).locateConstructor()
       .withParameters(C_PROTOCOL_DIRECTION)
