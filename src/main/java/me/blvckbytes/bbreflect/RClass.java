@@ -32,10 +32,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum RClass {
+  ENUM_PROTOCOL_DIRECTION((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.EnumProtocolDirection") :
+    Class.forName("net.minecraft.server." + ver + ".EnumProtocolDirection")
+  ),
+  PACKET_ENCODER((ver, after) -> after ?
+    Class.forName("net.minecraft.network.PacketEncoder") :
+    Class.forName("net.minecraft.server." + ver + ".PacketEncoder")
+  ),
   MINECRAFT_KEY((ver, after) -> after ?
     Class.forName("net.minecraft.resources.MinecraftKey") :
     Class.forName("net.minecraft.server." + ver + ".MinecraftKey")
   ),
+  CHANNEL_HANDLER_CONTEXT((ver, after) -> {
+    if (ver.compare(ServerVersion.V1_8_R0) < 0)
+      return Class.forName("net.minecraft.util.io.netty.channel.ChannelHandlerContext");
+    return Class.forName("io.netty.channel.ChannelHandlerContext");
+  }),
   BYTE_BUF((ver, after) -> {
     if (ver.compare(ServerVersion.V1_8_R0) < 0)
       return Class.forName("net.minecraft.util.io.netty.buffer.ByteBuf");
@@ -117,6 +130,9 @@ public enum RClass {
   ),
   CRAFT_COMMAND_MAP((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".command.CraftCommandMap")
+  ),
+  CRAFT_BLOCK((ver, after) ->
+    Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".block.CraftBlock")
   ),
   CRAFT_BLOCK_DATA((ver, after) ->
     Class.forName("org.bukkit.craftbukkit." + ver.bukkit + ".block.data.CraftBlockData")
