@@ -246,6 +246,7 @@ public class PacketEncoderClassPatcher {
         if (newName == null)
           continue;
 
+        // FIXME: It's not only method names that need patching, but also super invocations
         methodNode.name = newName;
       }
 

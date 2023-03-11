@@ -24,7 +24,7 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
+import me.blvckbytes.bbreflect.patching.IOwnedMethodInterceptionHandler;
 import org.jetbrains.annotations.Nullable;
 
 public interface IInterceptor {
@@ -39,6 +39,6 @@ public interface IInterceptor {
 
   void setOutboundBytesInterceptor(FBytesInterceptor interceptor);
 
-  void setMethodInterceptionHandler(FMethodInterceptionHandler handler);
+  void setMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler);
 
 }

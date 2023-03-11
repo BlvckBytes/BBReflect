@@ -24,7 +24,7 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
+import me.blvckbytes.bbreflect.patching.IOwnedMethodInterceptionHandler;
 
 public interface IPacketInterceptorRegistry {
 
@@ -44,8 +44,8 @@ public interface IPacketInterceptorRegistry {
 
   void unregisterOutboundBytesInterceptor(FBytesInterceptor interceptor);
 
-  void registerMethodInterceptionHandler(FMethodInterceptionHandler handler, EPriority priority);
+  void registerMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler, EPriority priority);
 
-  void unregisterMethodInterceptionHandler(FMethodInterceptionHandler handler);
+  void unregisterMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler);
 
 }

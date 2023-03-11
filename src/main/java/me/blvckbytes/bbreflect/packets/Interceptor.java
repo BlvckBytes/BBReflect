@@ -26,15 +26,14 @@ package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
 import io.netty.util.AttributeKey;
-import me.blvckbytes.bbreflect.patching.EMethodType;
-import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
+import me.blvckbytes.bbreflect.patching.IMethodInterceptionHandler;
+import me.blvckbytes.bbreflect.patching.IOwnedMethodInterceptionHandler;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -51,7 +50,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     PIPE_PACKET_HANDLER_NAME, PIPE_RAW_PACKET_ENCODER_NAME, PIPE_BINARY_DECODER_NAME, PIPE_BINARY_ENCODER_NAME
   };
 
-  public static final AttributeKey<Supplier<BiFunction<EMethodType, Object, Object>>> HANDLER_KEY;
+  public static final AttributeKey<Supplier<IMethodInterceptionHandler>> HANDLER_KEY;
 
   static {
     HANDLER_KEY = AttributeKey.valueOf("method_interception_handler");
@@ -74,7 +73,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private FBytesInterceptor inboundBytesInterceptor, outboundBytesInterceptor;
 
-  private FMethodInterceptionHandler methodInterceptionHandler;
+  private IOwnedMethodInterceptionHandler methodInterceptionHandler;
 
   /**
    * Create a new packet interceptor on top of a network channel
@@ -182,10 +181,27 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     action.accept(ch.pipeline());
   }
 
-  private @Nullable Object handleMethodInterception(EMethodType type, @Nullable Object input) {
-    if (this.methodInterceptionHandler == null)
-      return input;
-    return this.methodInterceptionHandler.handle(type, packetOwner, input);
+  private IMethodInterceptionHandler getInterceptionHandler() {
+    return new IMethodInterceptionHandler() {
+
+      @Override
+      public String handleStringifiedComponent(String input) {
+        if (methodInterceptionHandler == null)
+          return input;
+
+        return methodInterceptionHandler.handleStringifiedComponent(packetOwner, input);
+      }
+
+      @Override
+      public void handleNBTTagCompound(Object input, Consumer<@Nullable Runnable> serializeAndRestore) {
+        if (methodInterceptionHandler == null) {
+          serializeAndRestore.accept(null);
+          return;
+        }
+
+        methodInterceptionHandler.handleNBTTagCompound(packetOwner, input, serializeAndRestore);
+      }
+    };
   }
 
   /**
@@ -206,10 +222,11 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
         if (pipe.channel().hasAttr(HANDLER_KEY))
           throw new IllegalStateException("There was already another interception handler attached");
 
+        IMethodInterceptionHandler interceptionHandler = getInterceptionHandler();
         pipe.channel().attr(HANDLER_KEY).set(() -> {
           if (this.methodInterceptionHandler == null)
             return null;
-          return this::handleMethodInterception;
+          return interceptionHandler;
         });
 
         exchangeHandler(pipe, "encoder", operator::createModified);
@@ -340,7 +357,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   }
 
   @Override
-  public void setMethodInterceptionHandler(FMethodInterceptionHandler handler) {
+  public void setMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler) {
     this.methodInterceptionHandler = handler;
   }
 }

@@ -26,19 +26,20 @@ package me.blvckbytes.bbreflect.packets;
 
 import me.blvckbytes.autowirer.ICleanable;
 import me.blvckbytes.bbreflect.IReflectionHelper;
-import me.blvckbytes.bbreflect.patching.EMethodType;
-import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
+import me.blvckbytes.bbreflect.patching.IOwnedMethodInterceptionHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
-public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptorRegistry {
+public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptorRegistry, IOwnedMethodInterceptionHandler {
 
   private final IReflectionHelper reflectionHelper;
   private final PrioritizedSet<FPacketInterceptor> inboundPacketInterceptors, outboundPacketInterceptors;
   private final PrioritizedSet<FBytesInterceptor> inboundBytesInterceptors, outboundBytesInterceptors;
-  private final PrioritizedSet<FMethodInterceptionHandler> methodInterceptionHandlers;
+  private final PrioritizedSet<IOwnedMethodInterceptionHandler> methodInterceptionHandlers;
 
   public PacketInterceptorRegistry(
     JavaPlugin plugin,
@@ -102,12 +103,12 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
   }
 
   @Override
-  public void registerMethodInterceptionHandler(FMethodInterceptionHandler handler, EPriority priority) {
+  public void registerMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler, EPriority priority) {
     this.methodInterceptionHandlers.add(handler, priority);
   }
 
   @Override
-  public void unregisterMethodInterceptionHandler(FMethodInterceptionHandler handler) {
+  public void unregisterMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler) {
     this.methodInterceptionHandlers.remove(handler);
   }
 
@@ -135,24 +136,37 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     return resultingBuffer;
   }
 
-   private @Nullable Object callMethodInterceptorHandlers(EMethodType type, IPacketOwner owner, @Nullable Object input) {
-    if (input == null)
-      return null;
-
-     for (FMethodInterceptionHandler methodInterceptionHandler : methodInterceptionHandlers) {
-       input = methodInterceptionHandler.handle(type, owner, input);
-       if (input == null)
-         break;
-     }
-
+  @Override
+  public String handleStringifiedComponent(IPacketOwner owner, String input) {
+    for (IOwnedMethodInterceptionHandler interceptionHandler : methodInterceptionHandlers)
+      input = interceptionHandler.handleStringifiedComponent(owner, input);
     return input;
-   }
+  }
+
+  @Override
+  public void handleNBTTagCompound(IPacketOwner owner, Object input, Consumer<@Nullable Runnable> serializeAndRestore) {
+    List<Runnable> restoreCallbacks = new ArrayList<>();
+
+    for (IOwnedMethodInterceptionHandler interceptionHandler : methodInterceptionHandlers) {
+      interceptionHandler.handleNBTTagCompound(owner, input, restoreCallback -> {
+        if (restoreCallback != null)
+          restoreCallbacks.add(restoreCallback);
+      });
+    }
+
+    // Whoever calls serializeAndRestore.accept, invokes serialization.
+    // So only do this once, at the end of interception. This way, it's also guaranteed to execute.
+    serializeAndRestore.accept(() -> {
+      for (Runnable restoreCallback : restoreCallbacks)
+        restoreCallback.run();
+    });
+  }
 
   private void setupInterceptor(IInterceptor interceptor) {
     interceptor.setInboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(inboundPacketInterceptors, owner, packet, channel));
     interceptor.setOutboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(outboundPacketInterceptors, owner, packet, channel));
     interceptor.setInboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(inboundBytesInterceptors, owner, buffer, channel));
     interceptor.setOutboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(outboundBytesInterceptors, owner, buffer, channel));
-    interceptor.setMethodInterceptionHandler(this::callMethodInterceptorHandlers);
+    interceptor.setMethodInterceptionHandler(this);
   }
 }

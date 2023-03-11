@@ -32,8 +32,6 @@ import net.minecraft.network.PacketDataSerializer;
 import net.minecraft.network.chat.IChatBaseComponent;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BiFunction;
-
 public class CustomDataSerializer extends PacketDataSerializer {
 
   private final ChannelHandlerContext context;
@@ -45,31 +43,34 @@ public class CustomDataSerializer extends PacketDataSerializer {
 
   @Override
   public PacketDataSerializer a(@Nullable NBTTagCompound nbttagcompound) {
-    BiFunction<EMethodType, Object, Object> interceptionHandler = context.channel().attr(Interceptor.HANDLER_KEY).get().get();
+    IMethodInterceptionHandler interceptionHandler = context.channel().attr(Interceptor.HANDLER_KEY).get().get();
 
-    if (interceptionHandler != null)
-      nbttagcompound = (NBTTagCompound) interceptionHandler.apply(EMethodType.NBT_TAG_COMPOUND_HEAD, nbttagcompound);
+    if (interceptionHandler != null && nbttagcompound != null) {
+      interceptionHandler.handleNBTTagCompound(nbttagcompound, done -> {
+        super.a(nbttagcompound);
+
+        if (done != null)
+          done.run();
+      });
+
+      return this;
+    }
 
     super.a(nbttagcompound);
-
-    if (interceptionHandler != null)
-      interceptionHandler.apply(EMethodType.NBT_TAG_COMPOUND_TAIL, nbttagcompound);
-
     return this;
   }
 
   @Override
   public PacketDataSerializer a(IChatBaseComponent ichatbasecomponent) {
-    BiFunction<EMethodType, Object, Object> interceptionHandler = context.channel().attr(Interceptor.HANDLER_KEY).get().get();
+    IMethodInterceptionHandler interceptionHandler = context.channel().attr(Interceptor.HANDLER_KEY).get().get();
 
-    if (interceptionHandler != null)
-      ichatbasecomponent = (IChatBaseComponent) interceptionHandler.apply(EMethodType.I_CHAT_BASE_COMPONENT_HEAD, ichatbasecomponent);
+    if (interceptionHandler != null) {
+      String stringified = IChatBaseComponent.ChatSerializer.a(ichatbasecomponent);
+      super.a(interceptionHandler.handleStringifiedComponent(stringified), 262144);
+      return this;
+    }
 
     super.a(ichatbasecomponent);
-
-    if (interceptionHandler != null)
-      interceptionHandler.apply(EMethodType.I_CHAT_BASE_COMPONENT_TAIL, ichatbasecomponent);
-
     return this;
   }
 }
