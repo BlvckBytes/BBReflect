@@ -24,12 +24,12 @@
 
 package me.blvckbytes.bbreflect.patching;
 
-import io.netty.channel.ChannelHandlerContext;
+import me.blvckbytes.bbreflect.packets.IPacketOwner;
 import org.jetbrains.annotations.Nullable;
 
 @FunctionalInterface
 public interface FMethodInterceptionHandler {
 
-  @Nullable Object handle(EMethodType type, ChannelHandlerContext context, @Nullable Object input);
+  @Nullable Object handle(EMethodType type, IPacketOwner owner, @Nullable Object input);
 
 }

@@ -24,7 +24,6 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import io.netty.channel.ChannelHandlerContext;
 import me.blvckbytes.autowirer.ICleanable;
 import me.blvckbytes.bbreflect.IReflectionHelper;
 import me.blvckbytes.bbreflect.patching.EMethodType;
@@ -133,12 +132,12 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     return resultingBuffer;
   }
 
-   private @Nullable Object callMethodInterceptorHandlers(EMethodType type, ChannelHandlerContext context, @Nullable Object input) {
+   private @Nullable Object callMethodInterceptorHandlers(EMethodType type, IPacketOwner owner, @Nullable Object input) {
     if (input == null)
       return null;
 
      for (FMethodInterceptionHandler methodInterceptionHandler : methodInterceptionHandlers) {
-       input = methodInterceptionHandler.handle(type, context, input);
+       input = methodInterceptionHandler.handle(type, owner, input);
        if (input == null)
          break;
      }

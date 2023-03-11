@@ -33,4 +33,6 @@ public interface IPacketOwner {
 
   @Nullable Player getPlayer();
 
+  int getVersion();
+
 }

@@ -26,6 +26,7 @@ package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
 import io.netty.util.AttributeKey;
+import me.blvckbytes.bbreflect.patching.EMethodType;
 import me.blvckbytes.bbreflect.patching.FPacketEncoderFactory;
 import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
 import org.bukkit.entity.Player;
@@ -33,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -48,7 +50,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     PIPE_PACKET_HANDLER_NAME, PIPE_RAW_PACKET_ENCODER_NAME, PIPE_BINARY_DECODER_NAME, PIPE_BINARY_ENCODER_NAME
   };
 
-  public static final AttributeKey<Supplier<FMethodInterceptionHandler>> HANDLER_KEY;
+  public static final AttributeKey<Supplier<BiFunction<EMethodType, Object, Object>>> HANDLER_KEY;
 
   static {
     HANDLER_KEY = AttributeKey.valueOf("method_interception_handler");
@@ -62,6 +64,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   private @Nullable Object networkManager;
 
   private volatile @Nullable String playerName;
+  private volatile int version;
   private @Nullable Player playerReference;
 
   private final IPacketOwner packetOwner;
@@ -99,6 +102,11 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       public @Nullable Player getPlayer() {
         return playerReference;
       }
+
+      @Override
+      public int getVersion() {
+        return version;
+      }
     };
   }
 
@@ -111,6 +119,15 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       String extractedName = operator.tryExtractName(this, o);
       if (extractedName != null)
         playerName = extractedName;
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    // Try to extract the version and update the local reference, if applicable
+    try {
+      int extractedVersion = operator.tryExtractVersion(this, o);
+      if (extractedVersion > 0)
+        this.version = extractedVersion;
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -169,6 +186,12 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     action.accept(ch.pipeline());
   }
 
+  private @Nullable Object handleMethodInterception(EMethodType type, @Nullable Object input) {
+    if (this.methodInterceptionHandler == null)
+      return input;
+    return this.methodInterceptionHandler.handle(type, packetOwner, input);
+  }
+
   /**
    * Attaches this interceptor to it's underlying channel
    * @param name Name to attach as within the pipeline
@@ -181,7 +204,11 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
     ifPipePresent(pipe -> {
 
-      pipe.channel().attr(HANDLER_KEY).set(() -> this.methodInterceptionHandler);
+      pipe.channel().attr(HANDLER_KEY).set(() -> {
+        if (this.methodInterceptionHandler == null)
+          return null;
+        return this::handleMethodInterception;
+      });
 
       // The network manager instance is also registered within the
       // pipe, get it by it's name to have a reference available
