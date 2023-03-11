@@ -27,15 +27,16 @@ package me.blvckbytes.bbreflect.packets;
 import io.netty.channel.*;
 import io.netty.util.AttributeKey;
 import me.blvckbytes.bbreflect.patching.EMethodType;
-import me.blvckbytes.bbreflect.patching.FPacketEncoderFactory;
 import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
@@ -76,21 +77,16 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private FMethodInterceptionHandler methodInterceptionHandler;
 
-  private final FPacketEncoderFactory encoderFactory;
-
-  // TODO: Add a feature flag enum set in order to control features (raw packet encoder, intercepted packet encoder, binary interceptors, packet interceptors)
   /**
    * Create a new packet interceptor on top of a network channel
-   * @param encoderFactory Factory function to create new custom packet encoders
    * @param channel Underlying network channel to intercept data on
    * @param player Involved player, if already known at the time of instantiation
    * @param operator External packet operator which does all reflective access
    */
-  public Interceptor(FPacketEncoderFactory encoderFactory, Channel channel, @Nullable Player player, IPacketOperator operator) {
+  public Interceptor(Channel channel, @Nullable Player player, IPacketOperator operator) {
     this.playerReference = player;
     this.channel = new WeakReference<>(channel);
     this.operator = operator;
-    this.encoderFactory = encoderFactory;
 
     this.packetOwner = new IPacketOwner() {
 
@@ -201,76 +197,89 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     if (this.handlerName != null)
       throw new IllegalStateException("Tried to attach twice");
 
-    this.handlerName = name;
-
     ifPipePresent(pipe -> {
 
-      pipe.channel().attr(HANDLER_KEY).set(() -> {
-        if (this.methodInterceptionHandler == null)
-          return null;
-        return this::handleMethodInterception;
-      });
+      this.handlerName = name;
+
+      EnumSet<EInterceptorFeature> features = operator.getFeatures();
+
+      if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
+        if (pipe.channel().hasAttr(HANDLER_KEY))
+          throw new IllegalStateException("There was already another interception handler attached");
+
+        pipe.channel().attr(HANDLER_KEY).set(() -> {
+          if (this.methodInterceptionHandler == null)
+            return null;
+          return this::handleMethodInterception;
+        });
+
+        this.vanillaPacketEncoder = exchangeHandler(pipe, "encoder", operator.getEncoderFactory()::create);
+      }
 
       // The network manager instance is also registered within the
       // pipe, get it by it's name to have a reference available
       networkManager = pipe.get("packet_handler");
 
-      // Register before the packet handler to have an interception capability
-      pipe.addBefore("packet_handler", this.handlerName + PIPE_PACKET_HANDLER_NAME, this);
+      if (features.contains(EInterceptorFeature.PACKET_INTERCEPTION)) {
+        // Register before the packet handler to have an interception capability
+        pipe.addBefore("packet_handler", this.handlerName + PIPE_PACKET_HANDLER_NAME, this);
+      }
 
-      // Register the custom binary decoder before the actual decoder to have an interception capability
-      pipe.addBefore("decoder", this.handlerName + PIPE_BINARY_DECODER_NAME, new BinaryPacketReadHandler(message -> {
-        Channel channelInstance = channel.get();
+      if (features.contains(EInterceptorFeature.BYTES_INTERCEPTION)) {
+        // Register the custom binary decoder before the actual decoder to have an interception capability
+        pipe.addBefore("decoder", this.handlerName + PIPE_BINARY_DECODER_NAME, new BinaryPacketReadHandler(message -> {
+          Channel channelInstance = channel.get();
 
-        if (inboundBytesInterceptor != null && channelInstance != null) {
-          try {
-            IBinaryBuffer result = inboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
+          if (inboundBytesInterceptor != null && channelInstance != null) {
+            try {
+              IBinaryBuffer result = inboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
 
-            if (result == null)
-              return null;
+              if (result == null)
+                return null;
 
-            return result.asByteBuf();
-          } catch (Exception e) {
-            e.printStackTrace();
+              return result.asByteBuf();
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
           }
-        }
 
-        return message;
-      }));
+          return message;
+        }));
 
-      this.vanillaPacketEncoder = exchangeHandler(pipe, "encoder", encoderFactory.create(this.vanillaPacketEncoder));
+        // Register the custom binary encoder before the actual encoder to see it's results
+        pipe.addBefore("encoder", this.handlerName + PIPE_BINARY_ENCODER_NAME, new BinaryPacketWriteHandler(message -> {
+          Channel channelInstance = channel.get();
 
-      pipe.addAfter("encoder", this.handlerName + PIPE_RAW_PACKET_ENCODER_NAME, new RawPacketEncoder());
+          if (outboundBytesInterceptor != null && channelInstance != null) {
+            try {
+              IBinaryBuffer result = outboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
 
-      // Register the custom binary encoder before the actual encoder to see it's results
-      pipe.addBefore("encoder", this.handlerName + PIPE_BINARY_ENCODER_NAME, new BinaryPacketWriteHandler(message -> {
-        Channel channelInstance = channel.get();
+              if (result == null)
+                return null;
 
-        if (outboundBytesInterceptor != null && channelInstance != null) {
-          try {
-            IBinaryBuffer result = outboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
-
-            if (result == null)
-              return null;
-
-            return result.asByteBuf();
-          } catch (Exception e) {
-            e.printStackTrace();
+              return result.asByteBuf();
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
           }
-        }
 
-        return message;
-      }));
+          return message;
+        }));
+      }
+
+      if (features.contains(EInterceptorFeature.RAW_PACKET_ENCODER)) {
+        pipe.addAfter("encoder", this.handlerName + PIPE_RAW_PACKET_ENCODER_NAME, new RawPacketEncoder());
+      }
     });
   }
 
-  private Object exchangeHandler(ChannelPipeline pipe, String name, Object newEntry) {
+  private Object exchangeHandler(ChannelPipeline pipe, String name, Function<Object, Object> newEntry) {
     // Get the next name to add before in order to end up at the same location
-    int encoderIndex = pipe.names().indexOf("encoder");
+    int encoderIndex = pipe.names().indexOf(name);
     String nextName = pipe.names().get(encoderIndex + 1);
 
-    Object previousEntry = pipe.remove("encoder");
-    pipe.addBefore(nextName, "encoder", (ChannelHandler) newEntry);
+    Object previousEntry = pipe.remove(name);
+    pipe.addBefore(nextName, name, (ChannelHandler) newEntry.apply(previousEntry));
     return previousEntry;
   }
 
@@ -283,6 +292,8 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       return;
 
     ifPipePresent(pipe -> {
+      EnumSet<EInterceptorFeature> features = operator.getFeatures();
+
       List<String> names = pipe.names();
 
       for (String pipeName : AVAILABLE_PIPE_NAMES) {
@@ -292,8 +303,13 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       }
 
       if (this.vanillaPacketEncoder != null) {
-        exchangeHandler(pipe, "encoder", this.vanillaPacketEncoder);
+        // FIXME: net.minecraft.network.PacketEncoder is not a @Sharable handler, so can't be added or removed multiple times
+//        exchangeHandler(pipe, "encoder", previous -> this.vanillaPacketEncoder);
         this.vanillaPacketEncoder = null;
+      }
+
+      if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
+        pipe.channel().attr(HANDLER_KEY).set(null);
       }
     });
 

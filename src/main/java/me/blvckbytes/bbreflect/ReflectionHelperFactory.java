@@ -30,6 +30,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class ReflectionHelperFactory {
 
@@ -48,6 +49,7 @@ public class ReflectionHelperFactory {
   private final boolean needsNettyPatching;
   private final ServerVersion version;
   private final Plugin plugin;
+  private final Logger logger;
   private final Class<?> reflectionHelperClass;
 
   /**
@@ -55,8 +57,9 @@ public class ReflectionHelperFactory {
    * through the custom class loader behind the scenes to hand out an interface representation
    * @param plugin Plugin reference
    */
-  public ReflectionHelperFactory(Plugin plugin) throws Exception {
+  public ReflectionHelperFactory(Logger logger, Plugin plugin) throws Exception {
     this.plugin = plugin;
+    this.logger = logger;
     this.version = ServerVersion.current();
 
     // They used to inline netty on 1.7.x
@@ -80,8 +83,8 @@ public class ReflectionHelperFactory {
    */
   public IReflectionHelper makeHelper() throws Exception {
     return (IReflectionHelper) reflectionHelperClass
-      .getConstructor(Plugin.class, ServerVersion.class)
-      .newInstance(this.plugin, version);
+      .getConstructor(Logger.class, Plugin.class, ServerVersion.class)
+      .newInstance(this.logger, this.plugin, version);
   }
 
   /**

@@ -31,6 +31,8 @@ import me.blvckbytes.bbreflect.patching.FMethodInterceptionHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumSet;
+
 public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptorRegistry {
 
   private final IReflectionHelper reflectionHelper;
@@ -40,7 +42,8 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
 
   public PacketInterceptorRegistry(
     JavaPlugin plugin,
-    IReflectionHelper reflectionHelper
+    IReflectionHelper reflectionHelper,
+    IInterceptorFeatureProvider featureProvider
   ) throws Exception {
     this.reflectionHelper = reflectionHelper;
 
@@ -50,7 +53,7 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     this.outboundBytesInterceptors = new PrioritizedSet<>();
     this.methodInterceptionHandlers = new PrioritizedSet<>();
 
-    reflectionHelper.setupInterception(plugin.getName(), this::setupInterceptor);
+    reflectionHelper.setupInterception(plugin.getName(), featureProvider, this::setupInterceptor);
   }
 
   @Override

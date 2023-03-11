@@ -30,9 +30,7 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import me.blvckbytes.bbreflect.handle.*;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
-import me.blvckbytes.bbreflect.packets.IInterceptor;
-import me.blvckbytes.bbreflect.packets.InterceptorFactory;
-import me.blvckbytes.bbreflect.packets.RawPacket;
+import me.blvckbytes.bbreflect.packets.*;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import me.blvckbytes.utilitytypes.Tuple;
 import org.bukkit.Bukkit;
@@ -47,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public class ReflectionHelper implements IReflectionHelper {
 
@@ -68,10 +67,12 @@ public class ReflectionHelper implements IReflectionHelper {
   private final Tuple<Object, Method> serializationConstructorFactory;
   private final Map<Class<?>, Constructor<?>> emptyConstructorCache;
   private final Plugin plugin;
+  private final Logger logger;
 
-  public ReflectionHelper(Plugin plugin, ServerVersion version) throws Exception {
+  public ReflectionHelper(Logger logger, Plugin plugin, ServerVersion version) throws Exception {
     this.version = version;
     this.plugin = plugin;
+    this.logger = logger;
     this.networkManagerAndChannelCache = new WeakHashMap<>();
     this.emptyConstructorCache = new HashMap<>();
 
@@ -171,11 +172,11 @@ public class ReflectionHelper implements IReflectionHelper {
   }
 
   @Override
-  public void setupInterception(String handlerName, Consumer<IInterceptor> interceptor) throws Exception {
+  public void setupInterception(String handlerName, IInterceptorFeatureProvider featureProvider, Consumer<IInterceptor> interceptor) throws Exception {
     if (this.interceptorFactory != null)
       throw new IllegalStateException("The interceptor factory has already been set up");
 
-    this.interceptorFactory = new InterceptorFactory(this, handlerName);
+    this.interceptorFactory = new InterceptorFactory(featureProvider.getInterceptorFeatures(), logger, this, handlerName);
     this.interceptorFactory.setupInterception(interceptor::accept);
     Bukkit.getPluginManager().registerEvents(this.interceptorFactory, plugin);
   }

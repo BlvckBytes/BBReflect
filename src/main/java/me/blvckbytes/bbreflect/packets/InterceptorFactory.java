@@ -32,6 +32,7 @@ import me.blvckbytes.bbreflect.handle.FieldHandle;
 import me.blvckbytes.bbreflect.handle.MethodHandle;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.patching.ByteArrayClassLoader;
+import me.blvckbytes.bbreflect.patching.FPacketEncoderFactory;
 import me.blvckbytes.bbreflect.patching.PacketEncoderClassPatcher;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
@@ -44,6 +45,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.bukkit.Bukkit.getServer;
 
@@ -64,10 +67,14 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   private final Map<Player, Interceptor> interceptorByPlayer;
   private final List<Interceptor> interceptors;
   private final ReflectionHelper helper;
+  private final Logger logger;
+  private final EnumSet<EInterceptorFeature> features;
 
-  public InterceptorFactory(ReflectionHelper helper, String handlerName) throws Exception {
+  public InterceptorFactory(EnumSet<EInterceptorFeature> features, Logger logger, ReflectionHelper helper, String handlerName) throws Exception {
     this.helper = helper;
     this.handlerName = handlerName;
+    this.logger = logger;
+    this.features = features;
     this.interceptors = new ArrayList<>();
     this.channelHandlers = new HashMap<>();
     this.interceptorByPlayerName = new HashMap<>();
@@ -213,7 +220,11 @@ public class InterceptorFactory implements IPacketOperator, Listener {
         Channel channel = future.channel();
 
         ChannelInboundHandlerAdapter handler = attachInitializationListener(channel, futures, newChannel -> {
-          interceptor.accept(this.attachInterceptor(newChannel, null));
+          try {
+            interceptor.accept(this.attachInterceptor(newChannel, null));
+          } catch (Exception e) {
+            logger.log(Level.SEVERE, e, () -> "An error occurred while attaching an interceptor");
+          }
         });
 
         this.channelHandlers.put(channel, handler);
@@ -260,6 +271,9 @@ public class InterceptorFactory implements IPacketOperator, Listener {
    * Create a new custom packet encoder based on values from the previous instance
    */
   private Object createNewPacketEncoder(Object previousInstance) {
+    if (previousInstance == null)
+      throw new IllegalStateException("Previous instance is required to retrieve the protocol direction constant from");
+
     try {
       Object direction = F_PACKET_ENCODER__PROTOCOL_DIRECTION.get(previousInstance);
       return CT_NEW_PACKET_ENCODER.newInstance(direction);
@@ -277,7 +291,7 @@ public class InterceptorFactory implements IPacketOperator, Listener {
    * @return The attached interceptor instance
    */
   private Interceptor attachInterceptor(Channel channel, @Nullable Player player) {
-    Interceptor interceptor = new Interceptor(this::createNewPacketEncoder, channel, player, this);
+    Interceptor interceptor = new Interceptor(channel, player, this);
 
     interceptor.attach(handlerName);
     interceptors.add(interceptor);
@@ -373,6 +387,16 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   //=========================================================================//
   //                              IPacketOperator                            //
   //=========================================================================//
+
+  @Override
+  public EnumSet<EInterceptorFeature> getFeatures() {
+    return this.features;
+  }
+
+  @Override
+  public FPacketEncoderFactory getEncoderFactory() {
+    return this::createNewPacketEncoder;
+  }
 
   @Override
   public @Nullable String tryExtractName(Interceptor requester, Object packet) throws Exception {
