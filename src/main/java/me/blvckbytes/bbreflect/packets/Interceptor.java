@@ -62,6 +62,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private @Nullable String handlerName;
   private @Nullable Object networkManager;
+  private @Nullable Object vanillaPacketEncoder;
 
   private volatile @Nullable String playerName;
   private volatile int version;
@@ -237,13 +238,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
         return message;
       }));
 
-      // Get the next name to add before in order to end up at the same location
-      int encoderIndex = pipe.names().indexOf("encoder");
-      String nextName = pipe.names().get(encoderIndex + 1);
-
-      Object previousEncoder = pipe.remove("encoder");
-      ChannelHandler newEncoder = (ChannelHandler) encoderFactory.create(previousEncoder);
-      pipe.addBefore(nextName, "encoder", newEncoder);
+      this.vanillaPacketEncoder = exchangeHandler(pipe, "encoder", encoderFactory.create(this.vanillaPacketEncoder));
 
       pipe.addAfter("encoder", this.handlerName + PIPE_RAW_PACKET_ENCODER_NAME, new RawPacketEncoder());
 
@@ -269,6 +264,16 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     });
   }
 
+  private Object exchangeHandler(ChannelPipeline pipe, String name, Object newEntry) {
+    // Get the next name to add before in order to end up at the same location
+    int encoderIndex = pipe.names().indexOf("encoder");
+    String nextName = pipe.names().get(encoderIndex + 1);
+
+    Object previousEntry = pipe.remove("encoder");
+    pipe.addBefore(nextName, "encoder", (ChannelHandler) newEntry);
+    return previousEntry;
+  }
+
   /**
    * Detaches this interceptor from it's underlying channel
    */
@@ -284,6 +289,11 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
         String registeredName = this.handlerName + pipeName;
         if (names.contains(registeredName))
           pipe.remove(registeredName);
+      }
+
+      if (this.vanillaPacketEncoder != null) {
+        exchangeHandler(pipe, "encoder", this.vanillaPacketEncoder);
+        this.vanillaPacketEncoder = null;
       }
     });
 
