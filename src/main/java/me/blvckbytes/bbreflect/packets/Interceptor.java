@@ -320,7 +320,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
         // Create new vanilla instance, because is not a @Sharable handler, so can't be added or removed multiple times
         exchangeHandler(pipe, "encoder", operator::createVanilla);
-        pipe.channel().attr(HANDLER_KEY).set(null);
+        pipe.channel().attr(HANDLER_KEY).remove();
       }
     });
 
