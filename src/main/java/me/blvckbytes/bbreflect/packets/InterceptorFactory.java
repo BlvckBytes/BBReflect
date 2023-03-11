@@ -51,13 +51,13 @@ public class InterceptorFactory implements IPacketOperator, Listener {
 
   private final String handlerName;
 
-  private final ClassHandle C_PACKET_LOGIN;
+  private final ClassHandle C_PACKET_LOGIN, C_PACKET_HANDSHAKE;
   private final MethodHandle M_CRAFT_PLAYER__HANDLE;
   private final ConstructorHandle CT_NEW_PACKET_ENCODER;
 
   private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION,
     F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER,
-    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME, F_PACKET_ENCODER__PROTOCOL_DIRECTION;
+    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME, F_PACKET_ENCODER__PROTOCOL_DIRECTION, F_PACKET_HANDSHAKE__CLIENT_VERSION;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
   private final Map<String, Interceptor> interceptorByPlayerName;
@@ -75,6 +75,13 @@ public class InterceptorFactory implements IPacketOperator, Listener {
 
     ClassHandle C_PACKET_ENCODER = helper.getClass(RClass.PACKET_ENCODER);
     ClassHandle C_PROTOCOL_DIRECTION = helper.getClass(RClass.ENUM_PROTOCOL_DIRECTION);
+
+    C_PACKET_HANDSHAKE = helper.getClass(RClass.PACKET_I_HANDSHAKE);
+
+    F_PACKET_HANDSHAKE__CLIENT_VERSION = C_PACKET_HANDSHAKE.locateField()
+      .withPublic(false)
+      .withType(int.class)
+      .required();
 
     F_PACKET_ENCODER__PROTOCOL_DIRECTION = C_PACKET_ENCODER.locateField()
       .withType(C_PROTOCOL_DIRECTION)
@@ -376,6 +383,13 @@ public class InterceptorFactory implements IPacketOperator, Listener {
     interceptorByPlayerName.put(name, requester);
 
     return name;
+  }
+
+  @Override
+  public int tryExtractVersion(Interceptor requester, Object packet) throws Exception {
+    if (!C_PACKET_HANDSHAKE.isInstance(packet))
+      return -1;
+    return (int) F_PACKET_HANDSHAKE__CLIENT_VERSION.get(packet);
   }
 
   @Override

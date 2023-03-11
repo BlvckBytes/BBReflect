@@ -37,6 +37,15 @@ public interface IPacketOperator {
   @Nullable String tryExtractName(Interceptor requester, Object packet) throws Exception;
 
   /**
+   * Used to extract the client version from
+   * @param requester
+   * @param packet
+   * @return
+   * @throws Exception
+   */
+  int tryExtractVersion(Interceptor requester, Object packet) throws Exception;
+
+  /**
    * Used to send a packet using a network manager instance
    * @param packet Packet instance to send
    * @param completion Optional completion callback, nullable
