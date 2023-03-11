@@ -63,7 +63,6 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private @Nullable String handlerName;
   private @Nullable Object networkManager;
-  private @Nullable Object vanillaPacketEncoder;
 
   private volatile @Nullable String playerName;
   private volatile int version;
@@ -213,7 +212,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
           return this::handleMethodInterception;
         });
 
-        this.vanillaPacketEncoder = exchangeHandler(pipe, "encoder", operator.getEncoderFactory()::create);
+        exchangeHandler(pipe, "encoder", operator::createModified);
       }
 
       // The network manager instance is also registered within the
@@ -273,14 +272,13 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     });
   }
 
-  private Object exchangeHandler(ChannelPipeline pipe, String name, Function<Object, Object> newEntry) {
+  private void exchangeHandler(ChannelPipeline pipe, String name, Function<Object, Object> newEntry) {
     // Get the next name to add before in order to end up at the same location
     int encoderIndex = pipe.names().indexOf(name);
     String nextName = pipe.names().get(encoderIndex + 1);
 
     Object previousEntry = pipe.remove(name);
     pipe.addBefore(nextName, name, (ChannelHandler) newEntry.apply(previousEntry));
-    return previousEntry;
   }
 
   /**
@@ -302,13 +300,9 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
           pipe.remove(registeredName);
       }
 
-      if (this.vanillaPacketEncoder != null) {
-        // FIXME: net.minecraft.network.PacketEncoder is not a @Sharable handler, so can't be added or removed multiple times
-//        exchangeHandler(pipe, "encoder", previous -> this.vanillaPacketEncoder);
-        this.vanillaPacketEncoder = null;
-      }
-
       if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
+        // Create new vanilla instance, because is not a @Sharable handler, so can't be added or removed multiple times
+        exchangeHandler(pipe, "encoder", operator::createVanilla);
         pipe.channel().attr(HANDLER_KEY).set(null);
       }
     });

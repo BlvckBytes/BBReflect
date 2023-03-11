@@ -32,7 +32,6 @@ import me.blvckbytes.bbreflect.handle.FieldHandle;
 import me.blvckbytes.bbreflect.handle.MethodHandle;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.patching.ByteArrayClassLoader;
-import me.blvckbytes.bbreflect.patching.FPacketEncoderFactory;
 import me.blvckbytes.bbreflect.patching.PacketEncoderClassPatcher;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
@@ -56,11 +55,12 @@ public class InterceptorFactory implements IPacketOperator, Listener {
 
   private final ClassHandle C_PACKET_LOGIN, C_PACKET_HANDSHAKE;
   private final MethodHandle M_CRAFT_PLAYER__HANDLE;
-  private final ConstructorHandle CT_NEW_PACKET_ENCODER;
+  private final ConstructorHandle CT_NEW_PACKET_ENCODER, CT_PACKET_ENCODER;
 
   private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION,
     F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER,
-    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME, F_PACKET_ENCODER__PROTOCOL_DIRECTION, F_PACKET_HANDSHAKE__CLIENT_VERSION;
+    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME, F_PACKET_ENCODER__PROTOCOL_DIRECTION,
+    F_NEW_PACKET_ENCODER__PROTOCOL_DIRECTION, F_PACKET_HANDSHAKE__CLIENT_VERSION;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
   private final Map<String, Interceptor> interceptorByPlayerName;
@@ -85,6 +85,10 @@ public class InterceptorFactory implements IPacketOperator, Listener {
 
     C_PACKET_HANDSHAKE = helper.getClass(RClass.PACKET_I_HANDSHAKE);
 
+    CT_PACKET_ENCODER = C_PACKET_ENCODER.locateConstructor()
+      .withParameters(C_PROTOCOL_DIRECTION)
+      .required();
+
     F_PACKET_HANDSHAKE__CLIENT_VERSION = C_PACKET_HANDSHAKE.locateField()
       .withPublic(false)
       .withType(int.class)
@@ -97,8 +101,13 @@ public class InterceptorFactory implements IPacketOperator, Listener {
     ByteArrayClassLoader byteArrayClassLoader = new ByteArrayClassLoader(getClass().getClassLoader());
     Class<?> newEncoderClass = new PacketEncoderClassPatcher(helper).patchAndLoad(byteArrayClassLoader::defineClass);
 
-    CT_NEW_PACKET_ENCODER = ClassHandle.of(newEncoderClass, helper.getVersion()).locateConstructor()
+    ClassHandle C_NEW_PACKET_ENCODER = ClassHandle.of(newEncoderClass, helper.getVersion());
+    CT_NEW_PACKET_ENCODER = C_NEW_PACKET_ENCODER.locateConstructor()
       .withParameters(C_PROTOCOL_DIRECTION)
+      .required();
+
+    F_NEW_PACKET_ENCODER__PROTOCOL_DIRECTION = C_NEW_PACKET_ENCODER.locateField()
+      .withType(C_PROTOCOL_DIRECTION)
       .required();
 
     ClassHandle C_CRAFT_PLAYER = helper.getClass(RClass.CRAFT_PLAYER);
@@ -268,23 +277,6 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   }
 
   /**
-   * Create a new custom packet encoder based on values from the previous instance
-   */
-  private Object createNewPacketEncoder(Object previousInstance) {
-    if (previousInstance == null)
-      throw new IllegalStateException("Previous instance is required to retrieve the protocol direction constant from");
-
-    try {
-      Object direction = F_PACKET_ENCODER__PROTOCOL_DIRECTION.get(previousInstance);
-      return CT_NEW_PACKET_ENCODER.newInstance(direction);
-    } catch (Exception e) {
-      IllegalStateException ise = new IllegalStateException("Could not create a custom packet encoder instance");
-      ise.addSuppressed(e);
-      throw ise;
-    }
-  }
-
-  /**
    * Attaches an interceptor on a specific channel with the provided handler name
    * @param channel Channel to attach an interceptor to
    * @param player Owning player, if it's already known at the time of instantiation
@@ -394,11 +386,6 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   }
 
   @Override
-  public FPacketEncoderFactory getEncoderFactory() {
-    return this::createNewPacketEncoder;
-  }
-
-  @Override
   public @Nullable String tryExtractName(Interceptor requester, Object packet) throws Exception {
     if (!C_PACKET_LOGIN.isInstance(packet))
       return null;
@@ -419,5 +406,35 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   @Override
   public void sendPacket(Object packet, @Nullable Runnable completion, Object networkManager) throws Exception {
     helper.sendPacket(networkManager, packet, completion);
+  }
+
+  @Override
+  public Object createModified(Object previousInstance) {
+    if (previousInstance == null)
+      throw new IllegalStateException("Previous instance is required to retrieve the protocol direction constant from");
+
+    try {
+      Object direction = F_PACKET_ENCODER__PROTOCOL_DIRECTION.get(previousInstance);
+      return CT_NEW_PACKET_ENCODER.newInstance(direction);
+    } catch (Exception e) {
+      IllegalStateException ise = new IllegalStateException("Could not create a custom packet encoder instance");
+      ise.addSuppressed(e);
+      throw ise;
+    }
+  }
+
+  @Override
+  public Object createVanilla(Object previousInstance) {
+    if (previousInstance == null)
+      throw new IllegalStateException("Previous instance is required to retrieve the protocol direction constant from");
+
+    try {
+      Object direction = F_NEW_PACKET_ENCODER__PROTOCOL_DIRECTION.get(previousInstance);
+      return CT_PACKET_ENCODER.newInstance(direction);
+    } catch (Exception e) {
+      IllegalStateException ise = new IllegalStateException("Could not create a custom packet encoder instance");
+      ise.addSuppressed(e);
+      throw ise;
+    }
   }
 }

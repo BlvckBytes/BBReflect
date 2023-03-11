@@ -24,9 +24,10 @@
 
 package me.blvckbytes.bbreflect.patching;
 
-@FunctionalInterface
-public interface FPacketEncoderFactory {
+public interface IPacketEncoderFactory {
 
-  Object create(Object previousInstance);
+  Object createModified(Object previousInstance);
+
+  Object createVanilla(Object previousInstance);
 
 }

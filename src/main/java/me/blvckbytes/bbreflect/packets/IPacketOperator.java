@@ -24,19 +24,14 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import me.blvckbytes.bbreflect.patching.FPacketEncoderFactory;
+import me.blvckbytes.bbreflect.patching.IPacketEncoderFactory;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 
-public interface IPacketOperator {
+public interface IPacketOperator extends IPacketEncoderFactory {
 
   EnumSet<EInterceptorFeature> getFeatures();
-
-  /**
-   * Get the factory function for custom packet encoders
-   */
-  FPacketEncoderFactory getEncoderFactory();
 
   /**
    * Used to extract the player-name from a LoginIn-Packet
