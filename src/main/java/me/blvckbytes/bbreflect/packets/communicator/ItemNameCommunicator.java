@@ -31,7 +31,7 @@ import me.blvckbytes.bbreflect.IReflectionHelper;
 import me.blvckbytes.bbreflect.RClass;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.handle.FieldHandle;
-import me.blvckbytes.bbreflect.handle.MethodHandle;
+import me.blvckbytes.bbreflect.packets.BufferReader;
 import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
 import me.blvckbytes.bbreflect.packets.IPacketOwner;
@@ -46,11 +46,11 @@ import java.util.logging.Logger;
 
 public class ItemNameCommunicator implements IItemNameCommunicator, IInitializable, ICleanable {
 
+  private static final int MAX_NAME_BYTES_LENGTH = 32767;
   private static final String ITEM_NAME_KEY = "MC|ItemName";
 
   private final @Nullable ClassHandle C_PI_ITEM_NAME;
   private final @Nullable FieldHandle C_PI_ITEM_NAME__NAME;
-  private final MethodHandle M_PACKET_DATA_SERIALIZER__READ_STRING;
 
   private final Set<FItemNameReceiver> receivers;
   private final IPacketInterceptorRegistry packetInterceptor;
@@ -80,13 +80,6 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
       C_PI_ITEM_NAME = null;
       C_PI_ITEM_NAME__NAME = null;
     }
-
-    ClassHandle C_PACKET_DATA_SERIALIZER = reflectionHelper.getClass(RClass.PACKET_DATA_SERIALIZER);
-    M_PACKET_DATA_SERIALIZER__READ_STRING = C_PACKET_DATA_SERIALIZER.locateMethod()
-      .withPublic(true)
-      .withReturnType(String.class)
-      .withParameter(int.class)
-      .required();
   }
 
   @Override
@@ -99,7 +92,7 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
     this.receivers.remove(receiver);
   }
 
-  void receiveCustomPayloadData(IPacketOwner owner, String key, Object data) {
+  void receiveCustomPayloadData(IPacketOwner owner, String key, ByteBuf data) {
     if (!key.equals(ITEM_NAME_KEY))
       return;
 
@@ -108,8 +101,9 @@ public class ItemNameCommunicator implements IItemNameCommunicator, IInitializab
       return;
 
     try {
-      String name = (String) M_PACKET_DATA_SERIALIZER__READ_STRING.invoke(data, 32767);
-      ((ByteBuf) data).resetReaderIndex();
+      String name = BufferReader.readUTF8(data, MAX_NAME_BYTES_LENGTH);
+      data.resetReaderIndex();
+
       for (FItemNameReceiver receiver : receivers)
         receiver.receive(player, name);
     } catch (Exception e) {

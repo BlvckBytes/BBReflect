@@ -1,5 +1,6 @@
 package me.blvckbytes.bbreflect.packets.communicator;
 
+import io.netty.buffer.ByteBuf;
 import me.blvckbytes.autowirer.ICleanable;
 import me.blvckbytes.autowirer.IInitializable;
 import me.blvckbytes.bbreflect.IReflectionHelper;
@@ -34,14 +35,12 @@ public class CustomPayloadCommunicator implements ICustomPayloadCommunicator, II
 
     C_PI_CUSTOM_PAYLOAD = reflectionHelper.getClass(RClass.PACKET_I_CUSTOM_PAYLOAD);
 
-    ClassHandle C_PACKET_DATA_SERIALIZER = reflectionHelper.getClass(RClass.PACKET_DATA_SERIALIZER);
-
     F_PI_CUSTOM_PAYLOAD__STRING_KEY = C_PI_CUSTOM_PAYLOAD.locateField()
       .withType(String.class)
       .optional();
 
     F_PI_CUSTOM_PAYLOAD__DATA = C_PI_CUSTOM_PAYLOAD.locateField()
-      .withType(C_PACKET_DATA_SERIALIZER, false, Assignability.TYPE_TO_TARGET)
+      .withType(ByteBuf.class, false, Assignability.TYPE_TO_TARGET)
       .required();
 
     // MinecraftKey is being used since 1_13 in the custom payload packet
@@ -74,7 +73,7 @@ public class CustomPayloadCommunicator implements ICustomPayloadCommunicator, II
         key = String.valueOf(F_PI_CUSTOM_PAYLOAD__MINECRAFT_KEY.get(packet));
       }
 
-      Object data = F_PI_CUSTOM_PAYLOAD__DATA.get(packet);
+      ByteBuf data = (ByteBuf) F_PI_CUSTOM_PAYLOAD__DATA.get(packet);
 
       for (FCustomPayloadReceiver receiver : receivers)
         receiver.receive(owner, key, data);
