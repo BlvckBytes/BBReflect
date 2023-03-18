@@ -98,10 +98,18 @@ public class InterceptorFactory implements IPacketOperator, Listener {
       .withType(C_PROTOCOL_DIRECTION)
       .required();
 
-    ByteArrayClassLoader byteArrayClassLoader = new ByteArrayClassLoader(getClass().getClassLoader());
-    Class<?> newEncoderClass = new PacketEncoderClassPatcher(helper).patchAndLoad(byteArrayClassLoader::defineClass);
+    ClassHandle C_NEW_PACKET_ENCODER;
 
-    ClassHandle C_NEW_PACKET_ENCODER = ClassHandle.of(newEncoderClass, helper.getVersion());
+    if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
+      ByteArrayClassLoader byteArrayClassLoader = new ByteArrayClassLoader(getClass().getClassLoader());
+      Class<?> newEncoderClass = new PacketEncoderClassPatcher(helper).patchAndLoad(byteArrayClassLoader::defineClass);
+      C_NEW_PACKET_ENCODER = ClassHandle.of(newEncoderClass, helper.getVersion());
+    }
+
+    else {
+      C_NEW_PACKET_ENCODER = C_PACKET_ENCODER;
+    }
+
     CT_NEW_PACKET_ENCODER = C_NEW_PACKET_ENCODER.locateConstructor()
       .withParameters(C_PROTOCOL_DIRECTION)
       .required();
