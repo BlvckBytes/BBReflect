@@ -43,10 +43,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,12 +51,12 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
 
   private static final ItemStack ITEM_AIR = new ItemStack(Material.AIR, 1);
 
-  private final Map<Player, FFakeItemSupplier> windowItemsBlockedPlayers;
+  private final Map<Player, WindowItemsBlockingSession> windowItemsBlockedPlayers;
   private final Set<Object> sentSetSlotPackets;
 
   private final ConstructorHandle CT_PO_SET_SLOT;
   private final ClassHandle C_PO_SET_SLOT, C_PO_WINDOW_ITEMS;
-  private final FieldHandle F_PO_SET_SLOT__WINDOW_ID, F_PO_SET_SLOT__ITEM, F_PO_SET_SLOT__STATE_ID_OR_SLOT_ID;
+  private final FieldHandle F_PO_WINDOW_ITEMS__WINDOW_ID, F_PO_SET_SLOT__WINDOW_ID, F_PO_SET_SLOT__ITEM, F_PO_SET_SLOT__STATE_ID_OR_SLOT_ID;
   private final @Nullable FieldHandle F_PO_SET_SLOT__SLOT_ID;
   private final MethodHandle M_AS_NMS_COPY;
 
@@ -136,6 +133,10 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
     F_PO_SET_SLOT__ITEM = C_PO_SET_SLOT.locateField()
       .withType(C_ITEM_STACK)
       .required();
+
+    F_PO_WINDOW_ITEMS__WINDOW_ID = C_PO_WINDOW_ITEMS.locateField()
+      .withType(int.class)
+      .required();
   }
 
   @Override
@@ -164,8 +165,8 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
   }
 
   @Override
-  public void blockWindowItems(Player player, FFakeItemSupplier supplier) {
-    windowItemsBlockedPlayers.put(player, supplier);
+  public void blockWindowItems(Player player, EnumSet<EInventoryType> targets, FFakeItemSupplier supplier) {
+    windowItemsBlockedPlayers.put(player, new WindowItemsBlockingSession(targets, supplier));
   }
 
   @Override
@@ -179,7 +180,14 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
       return packet;
 
     if (C_PO_WINDOW_ITEMS.isInstance(packet)) {
-      if (!windowItemsBlockedPlayers.containsKey(player))
+      WindowItemsBlockingSession blockingSession = windowItemsBlockedPlayers.get(player);
+
+      if (blockingSession == null)
+        return packet;
+
+      int windowId = (int) F_PO_WINDOW_ITEMS__WINDOW_ID.get(packet);
+
+      if (!isWindowIdBlocked(blockingSession, windowId))
         return packet;
 
       return null;
@@ -190,12 +198,16 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
       if (sentSetSlotPackets.remove(packet))
         return packet;
 
-      FFakeItemSupplier fakeItemSupplier = windowItemsBlockedPlayers.get(player);
+      WindowItemsBlockingSession blockingSession = windowItemsBlockedPlayers.get(player);
 
-      if (fakeItemSupplier == null)
+      if (blockingSession == null)
         return packet;
 
       int windowId = (int) F_PO_SET_SLOT__WINDOW_ID.get(packet);
+
+      if (!isWindowIdBlocked(blockingSession, windowId))
+        return packet;
+
       int slotId;
 
       if (F_PO_SET_SLOT__SLOT_ID != null)
@@ -209,7 +221,7 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
       if (windowId == -1 && slotId == -1)
         return packet;
 
-      ItemStack fakeItem = fakeItemSupplier.apply(slotId);
+      ItemStack fakeItem = blockingSession.itemSupplier.apply(slotId);
 
       if (fakeItem == null)
         return packet;
@@ -228,5 +240,11 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
   @Override
   public void initialize() {
     interceptorRegistry.registerOutboundPacketInterceptor(this::interceptOutgoing, EPriority.LOWEST);
+  }
+
+  private boolean isWindowIdBlocked(WindowItemsBlockingSession blockingSession, int windowId) {
+    if (windowId == -1)
+      return blockingSession.doesTargetType(EInventoryType.BOTTOM);
+    return blockingSession.doesTargetType(EInventoryType.TOP);
   }
 }

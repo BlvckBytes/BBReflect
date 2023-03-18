@@ -24,17 +24,7 @@
 
 package me.blvckbytes.bbreflect.packets.communicator;
 
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-
-import java.util.EnumSet;
-
-public interface IFakeSlotCommunicator {
-
-  void setFakeSlot(Player player, int slotId, boolean top, ItemStack item);
-
-  void blockWindowItems(Player player, EnumSet<EInventoryType> targets, FFakeItemSupplier supplier);
-
-  void unblockWindowItems(Player player);
-
+public enum EInventoryType {
+  TOP,
+  BOTTOM
 }
