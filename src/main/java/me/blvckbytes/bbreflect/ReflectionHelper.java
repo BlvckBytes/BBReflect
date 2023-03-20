@@ -57,9 +57,13 @@ public class ReflectionHelper implements IReflectionHelper {
     F_PLAYER_CONNECTION__NETWORK_MANAGER,
     F_NETWORK_MANAGER__CHANNEL;
 
-  private final MethodHandle M_NETWORK_MANAGER__SEND;
+  private final MethodHandle M_NETWORK_MANAGER__SEND, M_ENUM_PROTOCOL__GET_PACKET_ID;
+
+  private final EnumHandle E_ENUM_PROTOCOL_DIRECTION, E_ENUM_PROTOCOL;
 
   private final WeakHashMap<Player, Tuple<Object, Channel>> networkManagerAndChannelCache;
+
+  private final Map<Class<?>, Integer> packetIdByType;
 
   private InterceptorFactory interceptorFactory;
 
@@ -75,12 +79,26 @@ public class ReflectionHelper implements IReflectionHelper {
     this.logger = logger;
     this.networkManagerAndChannelCache = new WeakHashMap<>();
     this.emptyConstructorCache = new HashMap<>();
+    this.packetIdByType = new HashMap<>();
 
     ClassHandle C_CRAFT_PLAYER = getClass(RClass.CRAFT_PLAYER);
     ClassHandle C_ENTITY_PLAYER = getClass(RClass.ENTITY_PLAYER);
     ClassHandle C_PLAYER_CONNECTION = getClass(RClass.PLAYER_CONNECTION);
     ClassHandle C_NETWORK_MANAGER = getClass(RClass.NETWORK_MANAGER);
     ClassHandle C_PACKET = getClass(RClass.PACKET);
+
+    ClassHandle C_ENUM_PROTOCOL = getClass(RClass.ENUM_PROTOCOL);
+    ClassHandle C_ENUM_PROTOCOL_DIRECTION = getClass(RClass.ENUM_PROTOCOL_DIRECTION);
+
+    M_ENUM_PROTOCOL__GET_PACKET_ID = C_ENUM_PROTOCOL.locateMethod()
+      .withPublic(true)
+      .withParameter(C_ENUM_PROTOCOL_DIRECTION, false, Assignability.TYPE_TO_TARGET)
+      .withParameter(C_PACKET, false, Assignability.TYPE_TO_TARGET)
+      .withReturnType(Integer.class)
+      .required();
+
+    E_ENUM_PROTOCOL_DIRECTION = C_ENUM_PROTOCOL_DIRECTION.asEnum();
+    E_ENUM_PROTOCOL = C_ENUM_PROTOCOL.asEnum();
 
     F_CRAFT_PLAYER__HANDLE = C_CRAFT_PLAYER.locateField()
       .withType(C_ENTITY_PLAYER, false, Assignability.TARGET_TO_TYPE)
@@ -262,6 +280,36 @@ public class ReflectionHelper implements IReflectionHelper {
     }
 
     return constructor.newInstance((Object[]) null);
+  }
+
+  private int tryLocatePacketId(Class<?> type) throws Exception {
+    Object dummyInstance = instantiateUnsafely(type);
+
+    for (EProtocol protocol : EProtocol.values) {
+      for (EProtocolDirection direction : protocol.availableDirections) {
+        Object nmsProtocol = E_ENUM_PROTOCOL.getByCopy(protocol);
+        Object nmsDirection = E_ENUM_PROTOCOL_DIRECTION.getByCopy(direction);
+
+        Integer id = (Integer) M_ENUM_PROTOCOL__GET_PACKET_ID.invoke(nmsProtocol, nmsDirection, dummyInstance);
+
+        if (id != null)
+          return id;
+      }
+    }
+
+    throw new IllegalStateException("No protocol/direction combination yielded a packet ID result for " + type);
+  }
+
+  @Override
+  public int getPacketId(Class<?> type) throws Exception {
+    Integer packetId = packetIdByType.get(type);
+
+    if (packetId != null)
+      return packetId;
+
+    packetId = tryLocatePacketId(type);
+    packetIdByType.put(type, packetId);
+    return packetId;
   }
 
   public ServerVersion getVersion() {

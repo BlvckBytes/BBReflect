@@ -102,4 +102,12 @@ public interface IReflectionHelper {
    */
   Object instantiateUnsafely(Class<?> type) throws Exception;
 
+  /**
+   * Get the packet ID corresponding to a packet's class
+   * @param type Class of the target packet
+   * @return Packet id
+   * @throws Exception If the corresponding ID could not be located
+   */
+  int getPacketId(Class<?> type) throws Exception;
+
 }

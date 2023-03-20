@@ -32,6 +32,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum RClass {
+  ENUM_PROTOCOL((ver, after) -> after ?
+    Class.forName("net.minecraft.network.EnumProtocol") :
+    Class.forName("net.minecraft.server." + ver + ".EnumProtocol")
+  ),
   ENUM_PROTOCOL_DIRECTION((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.EnumProtocolDirection") :
     Class.forName("net.minecraft.server." + ver + ".EnumProtocolDirection")
