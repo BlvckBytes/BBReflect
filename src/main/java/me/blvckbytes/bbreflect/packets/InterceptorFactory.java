@@ -291,7 +291,7 @@ public class InterceptorFactory implements IPacketOperator, Listener {
    * @return The attached interceptor instance
    */
   private Interceptor attachInterceptor(Channel channel, @Nullable Player player) {
-    Interceptor interceptor = new Interceptor(channel, player, this);
+    Interceptor interceptor = new Interceptor(channel, player, this, this.logger);
 
     interceptor.attach(handlerName);
     interceptors.add(interceptor);

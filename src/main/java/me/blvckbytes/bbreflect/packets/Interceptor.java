@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
@@ -59,6 +61,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   // Don't keep closed channels from being garbage-collected
   private final WeakReference<Channel> channel;
   private final IPacketOperator operator;
+  private final Logger logger;
 
   private @Nullable String handlerName;
   private @Nullable Object networkManager;
@@ -81,10 +84,11 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
    * @param player Involved player, if already known at the time of instantiation
    * @param operator External packet operator which does all reflective access
    */
-  public Interceptor(Channel channel, @Nullable Player player, IPacketOperator operator) {
+  public Interceptor(Channel channel, @Nullable Player player, IPacketOperator operator, Logger logger) {
     this.playerReference = player;
     this.channel = new WeakReference<>(channel);
     this.operator = operator;
+    this.logger = logger;
 
     this.packetOwner = new IPacketOwner() {
 
@@ -115,7 +119,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       if (extractedName != null)
         playerName = extractedName;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, e, () -> "An error occurred while trying to extract the client player name");
     }
 
     // Try to extract the version and update the local reference, if applicable
@@ -124,7 +128,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       if (extractedVersion > 0)
         this.version = extractedVersion;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE, e, () -> "An error occurred while trying to extract the client version");
     }
 
     // Call the inbound interceptor, if applicable
@@ -132,7 +136,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       try {
         o = inboundPacketInterceptor.intercept(packetOwner, o, ch);
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, e, () -> "An error occurred while processing an inbound packet interceptor");
       }
 
       // Dropped the packet
@@ -152,7 +156,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       try {
         o = outboundPacketInterceptor.intercept(packetOwner, o, ch);
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, e, () -> "An error occurred while processing an outbound packet interceptor");
       }
 
       // Dropped the packet
@@ -250,7 +254,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
             try {
               return inboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
             } catch (Exception e) {
-              e.printStackTrace();
+              logger.log(Level.SEVERE, e, () -> "An error occurred while processing an inbound bytes interceptor");
             }
           }
 
@@ -265,7 +269,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
             try {
               return outboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
             } catch (Exception e) {
-              e.printStackTrace();
+              logger.log(Level.SEVERE, e, () -> "An error occurred while processing an outbound bytes interceptor");
             }
           }
 
