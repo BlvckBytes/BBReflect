@@ -151,6 +151,16 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   public void write(ChannelHandlerContext channelHandlerContext, Object o, ChannelPromise channelPromise) throws Exception {
     Channel ch = channel.get();
 
+    // Check if the current packet is a login success packet, as this means that
+    // compression just got set up and the bytes interceptor needs to re-attach, in
+    // order to see uncompressed byte buffers (instead of compressed gibberish)
+    try {
+      if (ch != null && operator.isLoginOutSuccess(o))
+        attachBytesInterceptor(ch.pipeline());
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e, () -> "An error occurred while trying to detect PacketLoginOutSuccess");
+    }
+
     // Call the outbound interceptor, if applicable
     if (outboundPacketInterceptor != null && ch != null) {
       try {
@@ -208,6 +218,46 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     };
   }
 
+  private void attachBytesInterceptor(ChannelPipeline pipe) {
+    String decoderName = this.handlerName + PIPE_BINARY_DECODER_NAME;
+    if (pipe.names().contains(decoderName))
+      pipe.remove(decoderName);
+
+    // Register the custom binary decoder before the actual decoder to have an interception capability
+    pipe.addBefore("decoder", decoderName, new BinaryPacketReadHandler(message -> {
+      Channel channelInstance = channel.get();
+
+      if (inboundBytesInterceptor != null && channelInstance != null) {
+        try {
+          return inboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
+        } catch (Exception e) {
+          logger.log(Level.SEVERE, e, () -> "An error occurred while processing an inbound bytes interceptor");
+        }
+      }
+
+      return message;
+    }));
+
+    String encoderName = this.handlerName + PIPE_BINARY_ENCODER_NAME;
+    if (pipe.names().contains(encoderName))
+      pipe.remove(encoderName);
+
+    // Register the custom binary encoder before the actual encoder to see it's results
+    pipe.addBefore("encoder", encoderName, new BinaryPacketWriteHandler(message -> {
+      Channel channelInstance = channel.get();
+
+      if (outboundBytesInterceptor != null && channelInstance != null) {
+        try {
+          return outboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
+        } catch (Exception e) {
+          logger.log(Level.SEVERE, e, () -> "An error occurred while processing an outbound bytes interceptor");
+        }
+      }
+
+      return message;
+    }));
+  }
+
   /**
    * Attaches this interceptor to it's underlying channel
    * @param name Name to attach as within the pipeline
@@ -246,35 +296,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       }
 
       if (features.contains(EInterceptorFeature.BYTES_INTERCEPTION)) {
-        // Register the custom binary decoder before the actual decoder to have an interception capability
-        pipe.addBefore("decoder", this.handlerName + PIPE_BINARY_DECODER_NAME, new BinaryPacketReadHandler(message -> {
-          Channel channelInstance = channel.get();
-
-          if (inboundBytesInterceptor != null && channelInstance != null) {
-            try {
-              return inboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
-            } catch (Exception e) {
-              logger.log(Level.SEVERE, e, () -> "An error occurred while processing an inbound bytes interceptor");
-            }
-          }
-
-          return message;
-        }));
-
-        // Register the custom binary encoder before the actual encoder to see it's results
-        pipe.addBefore("encoder", this.handlerName + PIPE_BINARY_ENCODER_NAME, new BinaryPacketWriteHandler(message -> {
-          Channel channelInstance = channel.get();
-
-          if (outboundBytesInterceptor != null && channelInstance != null) {
-            try {
-              return outboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
-            } catch (Exception e) {
-              logger.log(Level.SEVERE, e, () -> "An error occurred while processing an outbound bytes interceptor");
-            }
-          }
-
-          return message;
-        }));
+        attachBytesInterceptor(pipe);
       }
 
       if (features.contains(EInterceptorFeature.RAW_PACKET_ENCODER)) {

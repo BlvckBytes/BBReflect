@@ -53,7 +53,7 @@ public class InterceptorFactory implements IPacketOperator, Listener {
 
   private final String handlerName;
 
-  private final ClassHandle C_PACKET_LOGIN, C_PACKET_HANDSHAKE;
+  private final ClassHandle C_PACKET_LOGIN, C_PACKET_HANDSHAKE, C_PACKET_LOGIN_SUCCESS ;
   private final MethodHandle M_CRAFT_PLAYER__HANDLE;
   private final ConstructorHandle CT_NEW_PACKET_ENCODER, CT_PACKET_ENCODER;
 
@@ -84,6 +84,7 @@ public class InterceptorFactory implements IPacketOperator, Listener {
     ClassHandle C_PROTOCOL_DIRECTION = helper.getClass(RClass.ENUM_PROTOCOL_DIRECTION);
 
     C_PACKET_HANDSHAKE = helper.getClass(RClass.PACKET_I_HANDSHAKE);
+    C_PACKET_LOGIN_SUCCESS = helper.getClass(RClass.PACKET_O_LOGIN_SUCCESS);
 
     CT_PACKET_ENCODER = C_PACKET_ENCODER.locateConstructor()
       .withParameters(C_PROTOCOL_DIRECTION)
@@ -409,6 +410,11 @@ public class InterceptorFactory implements IPacketOperator, Listener {
     if (!C_PACKET_HANDSHAKE.isInstance(packet))
       return -1;
     return (int) F_PACKET_HANDSHAKE__CLIENT_VERSION.get(packet);
+  }
+
+  @Override
+  public boolean isLoginOutSuccess(Object packet) throws Exception {
+    return C_PACKET_LOGIN_SUCCESS.isInstance(packet);
   }
 
   @Override

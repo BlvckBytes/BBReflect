@@ -51,6 +51,12 @@ public interface IPacketOperator extends IPacketEncoderFactory {
   int tryExtractVersion(Interceptor requester, Object packet) throws Exception;
 
   /**
+   * Checks whether the passed packet is of type PacketLoginOutSuccess
+   * @param packet Packet in question
+   */
+  boolean isLoginOutSuccess(Object packet) throws Exception;
+
+  /**
    * Used to send a packet using a network manager instance
    * @param packet Packet instance to send
    * @param completion Optional completion callback, nullable
