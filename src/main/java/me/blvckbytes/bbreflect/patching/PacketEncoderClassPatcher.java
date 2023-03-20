@@ -27,7 +27,6 @@ package me.blvckbytes.bbreflect.patching;
 import me.blvckbytes.bbreflect.IReflectionHelper;
 import me.blvckbytes.bbreflect.RClass;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
-import me.blvckbytes.bbreflect.version.ServerVersion;
 import me.blvckbytes.utilitytypes.Tuple;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -48,14 +47,9 @@ public class PacketEncoderClassPatcher {
   private final ClassHandle C_PACKET_ENCODER, C_BYTE_BUF, C_CHANNEL_HANDLER_CONTEXT, C_PACKET_DATA_SERIALIZER;
 
   private final List<Class<?>[]> targetMethodParameters;
-
-  private final Map<String, String> pdsConstantPoolPatches;
-  private final boolean needsNettyPatching;
+  private final ConstantPoolUtfPatcher utfPatcher;
 
   public PacketEncoderClassPatcher(IReflectionHelper reflectionHelper) throws Exception {
-    ServerVersion version = reflectionHelper.getVersion();
-    this.needsNettyPatching = version.compare(ServerVersion.V1_7_R10) <= 0;
-
     C_PACKET_ENCODER = reflectionHelper.getClass(RClass.PACKET_ENCODER);
     C_PACKET_DATA_SERIALIZER = reflectionHelper.getClass(RClass.PACKET_DATA_SERIALIZER);
     C_BYTE_BUF = reflectionHelper.getClass(RClass.BYTE_BUF);
@@ -64,7 +58,7 @@ public class PacketEncoderClassPatcher {
     ClassHandle C_NBT_TAG_COMPOUND = reflectionHelper.getClass(RClass.NBT_TAG_COMPOUND);
     ClassHandle C_BASE_COMPONENT = reflectionHelper.getClass(RClass.I_CHAT_BASE_COMPONENT);
 
-    this.pdsConstantPoolPatches = new HashMap<>();
+    Map<String, String> pdsConstantPoolPatches = new HashMap<>();
 
       /*
         io.netty.buffer.ByteBuf;
@@ -77,6 +71,8 @@ public class PacketEncoderClassPatcher {
        */
     pdsConstantPoolPatches.put("net.minecraft.nbt.NBTTagCompound".replace('.', '/'), C_NBT_TAG_COMPOUND.getHandle().getName().replace('.', '/'));
     pdsConstantPoolPatches.put("net.minecraft.network.PacketDataSerializer".replace('.', '/'), C_PACKET_DATA_SERIALIZER.getHandle().getName().replace('.', '/'));
+
+    this.utfPatcher = new ConstantPoolUtfPatcher(value -> pdsConstantPoolPatches.getOrDefault(value, value));
 
     this.targetMethodParameters = new ArrayList<>();
     this.targetMethodParameters.add(new Class<?>[] { C_NBT_TAG_COMPOUND.getHandle() });
@@ -268,11 +264,7 @@ public class PacketEncoderClassPatcher {
     ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
     DataInputStream dis = new DataInputStream(bis);
 
-    new ConstantPoolUtfPatcher(value -> {
-      if (needsNettyPatching && value.contains("io/netty"))
-        return value.replace("io/netty", "net/minecraft/util/io/netty");
-      return this.pdsConstantPoolPatches.getOrDefault(value, value);
-    }).patch(dis, dos);
+    this.utfPatcher.patch(dis, dos);
 
     return bos.toByteArray();
   }
