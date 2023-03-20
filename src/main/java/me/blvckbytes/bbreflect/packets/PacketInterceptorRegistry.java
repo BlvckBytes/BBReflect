@@ -115,8 +115,8 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
   private @Nullable Object callPacketInterceptors(Iterable<FPacketInterceptor> interceptors, IPacketOwner owner, Object packet, Object channel) throws Exception {
     Object resultingPacket = packet;
 
-    for (FPacketInterceptor inboundInterceptor : interceptors) {
-      resultingPacket = inboundInterceptor.intercept(owner, resultingPacket, channel);
+    for (FPacketInterceptor interceptor : interceptors) {
+      resultingPacket = interceptor.intercept(owner, resultingPacket, channel);
       if (resultingPacket == null)
         break;
     }
@@ -127,8 +127,8 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
   private @Nullable Object callBytesInterceptors(Iterable<FBytesInterceptor> interceptors, IPacketOwner owner, Object buffer, Object channel) throws Exception {
     Object resultingBuffer = buffer;
 
-    for (FBytesInterceptor inboundInterceptor : interceptors) {
-      resultingBuffer = inboundInterceptor.intercept(owner, resultingBuffer, channel);
+    for (FBytesInterceptor interceptor : interceptors) {
+      resultingBuffer = interceptor.intercept(owner, resultingBuffer, channel);
       if (resultingBuffer == null)
         break;
     }
