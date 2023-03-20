@@ -29,6 +29,6 @@ import org.jetbrains.annotations.Nullable;
 @FunctionalInterface
 public interface FBytesInterceptor {
 
-  @Nullable IBinaryBuffer intercept(IPacketOwner owner, IBinaryBuffer buffer, Object channel) throws Exception;
+  @Nullable Object intercept(IPacketOwner owner, Object buffer, Object channel) throws Exception;
 
 }

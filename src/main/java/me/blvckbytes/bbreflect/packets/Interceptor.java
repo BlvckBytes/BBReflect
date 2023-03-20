@@ -248,12 +248,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
           if (inboundBytesInterceptor != null && channelInstance != null) {
             try {
-              IBinaryBuffer result = inboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
-
-              if (result == null)
-                return null;
-
-              return result.asByteBuf();
+              return inboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
             } catch (Exception e) {
               e.printStackTrace();
             }
@@ -268,12 +263,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
           if (outboundBytesInterceptor != null && channelInstance != null) {
             try {
-              IBinaryBuffer result = outboundBytesInterceptor.intercept(packetOwner, new ByteBufBuffer(message), channelInstance);
-
-              if (result == null)
-                return null;
-
-              return result.asByteBuf();
+              return outboundBytesInterceptor.intercept(packetOwner, message, channelInstance);
             } catch (Exception e) {
               e.printStackTrace();
             }
