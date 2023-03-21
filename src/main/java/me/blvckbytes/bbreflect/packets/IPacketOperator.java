@@ -24,14 +24,9 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import me.blvckbytes.bbreflect.patching.IPacketEncoderFactory;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumSet;
-
-public interface IPacketOperator extends IPacketEncoderFactory {
-
-  EnumSet<EInterceptorFeature> getFeatures();
+public interface IPacketOperator {
 
   /**
    * Used to extract the player-name from a LoginIn-Packet
@@ -42,11 +37,10 @@ public interface IPacketOperator extends IPacketEncoderFactory {
   @Nullable String tryExtractName(Interceptor requester, Object packet) throws Exception;
 
   /**
-   * Used to extract the client version from
-   * @param requester
-   * @param packet
-   * @return
-   * @throws Exception
+   * Used to extract the client version from the Handshake-Packet
+   * @param requester The interceptor which requested to extract a name
+   * @param packet Any packet, maybe a Handshake-Packet
+   * @return Client version on success, -1 otherwise
    */
   int tryExtractVersion(Interceptor requester, Object packet) throws Exception;
 
@@ -63,5 +57,7 @@ public interface IPacketOperator extends IPacketEncoderFactory {
    * @param networkManager Network manager reference to invoke sending on
    */
   void sendPacket(Object packet, @Nullable Runnable completion, Object networkManager) throws Exception;
+
+  Iterable<IExternalInterceptorFeature> getExternalInterceptorFeatures();
 
 }

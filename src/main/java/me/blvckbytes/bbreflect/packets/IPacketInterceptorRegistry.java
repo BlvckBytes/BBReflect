@@ -24,7 +24,8 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-import me.blvckbytes.bbreflect.patching.IOwnedMethodInterceptionHandler;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 public interface IPacketInterceptorRegistry {
 
@@ -44,8 +45,10 @@ public interface IPacketInterceptorRegistry {
 
   void unregisterOutboundBytesInterceptor(FBytesInterceptor interceptor);
 
-  void registerMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler, EPriority priority);
+  void registerExternalInterceptorFeature(IExternalInterceptorFeature feature, EPriority priority);
 
-  void unregisterMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler);
+  void unregisterExternalInterceptorFeature(IExternalInterceptorFeature feature);
+
+  @Nullable IInterceptor getPlayerInterceptor(Player p);
 
 }

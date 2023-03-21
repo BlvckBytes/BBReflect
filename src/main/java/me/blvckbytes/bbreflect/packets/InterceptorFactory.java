@@ -25,14 +25,12 @@
 package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
-import me.blvckbytes.bbreflect.*;
+import me.blvckbytes.bbreflect.RClass;
+import me.blvckbytes.bbreflect.ReflectionHelper;
 import me.blvckbytes.bbreflect.handle.ClassHandle;
-import me.blvckbytes.bbreflect.handle.ConstructorHandle;
 import me.blvckbytes.bbreflect.handle.FieldHandle;
 import me.blvckbytes.bbreflect.handle.MethodHandle;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
-import me.blvckbytes.bbreflect.patching.ByteArrayClassLoader;
-import me.blvckbytes.bbreflect.patching.PacketEncoderClassPatcher;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -55,68 +53,40 @@ public class InterceptorFactory implements IPacketOperator, Listener {
 
   private final ClassHandle C_PACKET_LOGIN, C_PACKET_HANDSHAKE, C_PACKET_LOGIN_SUCCESS ;
   private final MethodHandle M_CRAFT_PLAYER__HANDLE;
-  private final ConstructorHandle CT_NEW_PACKET_ENCODER, CT_PACKET_ENCODER;
 
   private final FieldHandle F_CRAFT_SERVER__MINECRAFT_SERVER, F_MINECRAFT_SERVER__SERVER_CONNECTION,
     F_SERVER_CONNECTION__CHANNEL_FUTURES, F_ENTITY_PLAYER__PLAYER_CONNECTION, F_PLAYER_CONNECTION__NETWORK_MANAGER,
-    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME, F_PACKET_ENCODER__PROTOCOL_DIRECTION,
-    F_NEW_PACKET_ENCODER__PROTOCOL_DIRECTION, F_PACKET_HANDSHAKE__CLIENT_VERSION;
+    F_NETWORK_MANAGER__CHANNEL, F_PACKET_LOGIN__NAME, F_PACKET_HANDSHAKE__CLIENT_VERSION;
 
   private final Map<Channel, ChannelInboundHandlerAdapter> channelHandlers;
   private final Map<String, Interceptor> interceptorByPlayerName;
   private final Map<Player, Interceptor> interceptorByPlayer;
   private final List<Interceptor> interceptors;
+  private final Iterable<IExternalInterceptorFeature> externalInterceptorFeatures;
   private final ReflectionHelper helper;
   private final Logger logger;
-  private final EnumSet<EInterceptorFeature> features;
 
-  public InterceptorFactory(EnumSet<EInterceptorFeature> features, Logger logger, ReflectionHelper helper, String handlerName) throws Exception {
+  public InterceptorFactory(
+    Iterable<IExternalInterceptorFeature> externalInterceptorFeatures,
+    Logger logger,
+    ReflectionHelper helper,
+    String handlerName
+  ) throws Exception {
     this.helper = helper;
     this.handlerName = handlerName;
     this.logger = logger;
-    this.features = features;
+    this.externalInterceptorFeatures = externalInterceptorFeatures;
     this.interceptors = new ArrayList<>();
     this.channelHandlers = new HashMap<>();
     this.interceptorByPlayerName = new HashMap<>();
     this.interceptorByPlayer = new HashMap<>();
 
-    ClassHandle C_PACKET_ENCODER = helper.getClass(RClass.PACKET_ENCODER);
-    ClassHandle C_PROTOCOL_DIRECTION = helper.getClass(RClass.ENUM_PROTOCOL_DIRECTION);
-
     C_PACKET_HANDSHAKE = helper.getClass(RClass.PACKET_I_HANDSHAKE);
     C_PACKET_LOGIN_SUCCESS = helper.getClass(RClass.PACKET_O_LOGIN_SUCCESS);
-
-    CT_PACKET_ENCODER = C_PACKET_ENCODER.locateConstructor()
-      .withParameters(C_PROTOCOL_DIRECTION)
-      .required();
 
     F_PACKET_HANDSHAKE__CLIENT_VERSION = C_PACKET_HANDSHAKE.locateField()
       .withPublic(false)
       .withType(int.class)
-      .required();
-
-    F_PACKET_ENCODER__PROTOCOL_DIRECTION = C_PACKET_ENCODER.locateField()
-      .withType(C_PROTOCOL_DIRECTION)
-      .required();
-
-    ClassHandle C_NEW_PACKET_ENCODER;
-
-    if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
-      ByteArrayClassLoader byteArrayClassLoader = new ByteArrayClassLoader(getClass().getClassLoader());
-      Class<?> newEncoderClass = new PacketEncoderClassPatcher(helper).patchAndLoad(byteArrayClassLoader::defineClass);
-      C_NEW_PACKET_ENCODER = ClassHandle.of(newEncoderClass, helper.getVersion());
-    }
-
-    else {
-      C_NEW_PACKET_ENCODER = C_PACKET_ENCODER;
-    }
-
-    CT_NEW_PACKET_ENCODER = C_NEW_PACKET_ENCODER.locateConstructor()
-      .withParameters(C_PROTOCOL_DIRECTION)
-      .required();
-
-    F_NEW_PACKET_ENCODER__PROTOCOL_DIRECTION = C_NEW_PACKET_ENCODER.locateField()
-      .withType(C_PROTOCOL_DIRECTION)
       .required();
 
     ClassHandle C_CRAFT_PLAYER = helper.getClass(RClass.CRAFT_PLAYER);
@@ -390,11 +360,6 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   //=========================================================================//
 
   @Override
-  public EnumSet<EInterceptorFeature> getFeatures() {
-    return this.features;
-  }
-
-  @Override
   public @Nullable String tryExtractName(Interceptor requester, Object packet) throws Exception {
     if (!C_PACKET_LOGIN.isInstance(packet))
       return null;
@@ -413,7 +378,7 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   }
 
   @Override
-  public boolean isLoginOutSuccess(Object packet) throws Exception {
+  public boolean isLoginOutSuccess(Object packet) {
     return C_PACKET_LOGIN_SUCCESS.isInstance(packet);
   }
 
@@ -423,32 +388,7 @@ public class InterceptorFactory implements IPacketOperator, Listener {
   }
 
   @Override
-  public Object createModified(Object previousInstance) {
-    if (previousInstance == null)
-      throw new IllegalStateException("Previous instance is required to retrieve the protocol direction constant from");
-
-    try {
-      Object direction = F_PACKET_ENCODER__PROTOCOL_DIRECTION.get(previousInstance);
-      return CT_NEW_PACKET_ENCODER.newInstance(direction);
-    } catch (Exception e) {
-      IllegalStateException ise = new IllegalStateException("Could not create a custom packet encoder instance");
-      ise.addSuppressed(e);
-      throw ise;
-    }
-  }
-
-  @Override
-  public Object createVanilla(Object previousInstance) {
-    if (previousInstance == null)
-      throw new IllegalStateException("Previous instance is required to retrieve the protocol direction constant from");
-
-    try {
-      Object direction = F_NEW_PACKET_ENCODER__PROTOCOL_DIRECTION.get(previousInstance);
-      return CT_PACKET_ENCODER.newInstance(direction);
-    } catch (Exception e) {
-      IllegalStateException ise = new IllegalStateException("Could not create a custom packet encoder instance");
-      ise.addSuppressed(e);
-      throw ise;
-    }
+  public Iterable<IExternalInterceptorFeature> getExternalInterceptorFeatures() {
+    return this.externalInterceptorFeatures;
   }
 }

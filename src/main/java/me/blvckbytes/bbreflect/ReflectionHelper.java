@@ -25,18 +25,13 @@
 package me.blvckbytes.bbreflect;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import me.blvckbytes.bbreflect.handle.*;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.packets.*;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import me.blvckbytes.utilitytypes.Tuple;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
@@ -44,8 +39,6 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.function.Consumer;
-import java.util.logging.Logger;
 
 public class ReflectionHelper implements IReflectionHelper {
 
@@ -65,18 +58,12 @@ public class ReflectionHelper implements IReflectionHelper {
 
   private final Map<Class<?>, Integer> packetIdByType;
 
-  private InterceptorFactory interceptorFactory;
-
   private final Constructor<?> javaLangObjectConstructor;
   private final Tuple<Object, Method> serializationConstructorFactory;
   private final Map<Class<?>, Constructor<?>> emptyConstructorCache;
-  private final Plugin plugin;
-  private final Logger logger;
 
-  public ReflectionHelper(Logger logger, Plugin plugin, ServerVersion version) throws Exception {
+  public ReflectionHelper(ServerVersion version) throws Exception {
     this.version = version;
-    this.plugin = plugin;
-    this.logger = logger;
     this.networkManagerAndChannelCache = new WeakHashMap<>();
     this.emptyConstructorCache = new HashMap<>();
     this.packetIdByType = new HashMap<>();
@@ -189,33 +176,6 @@ public class ReflectionHelper implements IReflectionHelper {
     return new Tuple<>(networkManager, (Channel) channel);
   }
 
-  @Override
-  public void setupInterception(String handlerName, IInterceptorFeatureProvider featureProvider, Consumer<IInterceptor> interceptor) throws Exception {
-    if (this.interceptorFactory != null)
-      throw new IllegalStateException("The interceptor factory has already been set up");
-
-    this.interceptorFactory = new InterceptorFactory(featureProvider.getInterceptorFeatures(), logger, this, handlerName);
-    this.interceptorFactory.setupInterception(interceptor::accept);
-    Bukkit.getPluginManager().registerEvents(this.interceptorFactory, plugin);
-  }
-
-  @Override
-  public void cleanupInterception() {
-    if (interceptorFactory == null)
-      return;
-
-    this.interceptorFactory.cleanupInterception();
-    HandlerList.unregisterAll(this.interceptorFactory);
-    this.interceptorFactory = null;
-  }
-
-  @Override
-  public @Nullable IInterceptor getInterceptorFor(Player p) {
-    if (this.interceptorFactory == null)
-      return null;
-    return this.interceptorFactory.getPlayerInterceptor(p);
-  }
-
   public void sendPacket(Object networkManager, Object packet, @Nullable Runnable completion) throws Exception {
     if (completion == null)
       completion = () -> {};
@@ -233,16 +193,6 @@ public class ReflectionHelper implements IReflectionHelper {
 
     if (!networkManagerAndChannel.b.isOpen())
       return;
-
-    if (packet instanceof RawPacket) {
-      Channel channel = networkManagerAndChannel.b;
-      ChannelFuture future = channel.writeAndFlush(packet);
-
-      if (completion != null)
-        future.addListener((GenericFutureListener<? extends Future<? super Void>>) makeFutureListener(completion));
-
-      return;
-    }
 
     sendPacket(networkManagerAndChannel.a, packet, completion);
   }

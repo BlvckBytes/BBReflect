@@ -25,18 +25,13 @@
 package me.blvckbytes.bbreflect.packets;
 
 import io.netty.channel.*;
-import io.netty.util.AttributeKey;
-import me.blvckbytes.bbreflect.patching.IMethodInterceptionHandler;
-import me.blvckbytes.bbreflect.patching.IOwnedMethodInterceptionHandler;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
-import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,19 +39,12 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
   private static final String
     PIPE_PACKET_HANDLER_NAME     = "_packet_handler",
-    PIPE_RAW_PACKET_ENCODER_NAME = "_raw_packet_encoder",
     PIPE_BINARY_DECODER_NAME     = "_binary_decoder",
     PIPE_BINARY_ENCODER_NAME     = "_binary_encoder";
 
   private static final String[] AVAILABLE_PIPE_NAMES = {
-    PIPE_PACKET_HANDLER_NAME, PIPE_RAW_PACKET_ENCODER_NAME, PIPE_BINARY_DECODER_NAME, PIPE_BINARY_ENCODER_NAME
+    PIPE_PACKET_HANDLER_NAME, PIPE_BINARY_DECODER_NAME, PIPE_BINARY_ENCODER_NAME
   };
-
-  public static final AttributeKey<Supplier<IMethodInterceptionHandler>> HANDLER_KEY;
-
-  static {
-    HANDLER_KEY = AttributeKey.valueOf("method_interception_handler");
-  }
 
   // Don't keep closed channels from being garbage-collected
   private final WeakReference<Channel> channel;
@@ -70,13 +58,13 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   private volatile int version;
   private @Nullable Player playerReference;
 
+  private final List<IExternalInterceptorFeature> attachedFeatures;
+
   private final IPacketOwner packetOwner;
 
   private FPacketInterceptor inboundPacketInterceptor, outboundPacketInterceptor;
 
   private FBytesInterceptor inboundBytesInterceptor, outboundBytesInterceptor;
-
-  private IOwnedMethodInterceptionHandler methodInterceptionHandler;
 
   /**
    * Create a new packet interceptor on top of a network channel
@@ -87,6 +75,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   public Interceptor(Channel channel, @Nullable Player player, IPacketOperator operator, Logger logger) {
     this.playerReference = player;
     this.channel = new WeakReference<>(channel);
+    this.attachedFeatures = new ArrayList<>();
     this.operator = operator;
     this.logger = logger;
 
@@ -195,29 +184,6 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
     action.accept(ch.pipeline());
   }
 
-  private IMethodInterceptionHandler getInterceptionHandler() {
-    return new IMethodInterceptionHandler() {
-
-      @Override
-      public String handleStringifiedComponent(String input) {
-        if (methodInterceptionHandler == null)
-          return input;
-
-        return methodInterceptionHandler.handleStringifiedComponent(packetOwner, input);
-      }
-
-      @Override
-      public void handleNBTTagCompound(Object input, Consumer<@Nullable Runnable> serializeAndRestore) {
-        if (methodInterceptionHandler == null) {
-          serializeAndRestore.accept(null);
-          return;
-        }
-
-        methodInterceptionHandler.handleNBTTagCompound(packetOwner, input, serializeAndRestore);
-      }
-    };
-  }
-
   private void attachBytesInterceptor(ChannelPipeline pipe) {
     String decoderName = this.handlerName + PIPE_BINARY_DECODER_NAME;
     if (pipe.names().contains(decoderName))
@@ -270,48 +236,21 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
       this.handlerName = name;
 
-      EnumSet<EInterceptorFeature> features = operator.getFeatures();
-
-      if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
-        if (pipe.channel().hasAttr(HANDLER_KEY))
-          throw new IllegalStateException("There was already another interception handler attached");
-
-        IMethodInterceptionHandler interceptionHandler = getInterceptionHandler();
-        pipe.channel().attr(HANDLER_KEY).set(() -> {
-          if (this.methodInterceptionHandler == null)
-            return null;
-          return interceptionHandler;
-        });
-
-        exchangeHandler(pipe, "encoder", operator::createModified);
-      }
-
       // The network manager instance is also registered within the
       // pipe, get it by it's name to have a reference available
       networkManager = pipe.get("packet_handler");
 
-      if (features.contains(EInterceptorFeature.PACKET_INTERCEPTION)) {
-        // Register before the packet handler to have an interception capability
-        pipe.addBefore("packet_handler", this.handlerName + PIPE_PACKET_HANDLER_NAME, this);
-      }
+      // Register before the packet handler to have an interception capability
+      pipe.addBefore("packet_handler", this.handlerName + PIPE_PACKET_HANDLER_NAME, this);
 
-      if (features.contains(EInterceptorFeature.BYTES_INTERCEPTION)) {
-        attachBytesInterceptor(pipe);
-      }
+      attachBytesInterceptor(pipe);
 
-      if (features.contains(EInterceptorFeature.RAW_PACKET_ENCODER)) {
-        pipe.addAfter("encoder", this.handlerName + PIPE_RAW_PACKET_ENCODER_NAME, new RawPacketEncoder());
+      Channel channel = pipe.channel();
+      for (IExternalInterceptorFeature externalFeature : operator.getExternalInterceptorFeatures()) {
+        externalFeature.attach(handlerName, channel);
+        this.attachedFeatures.add(externalFeature);
       }
     });
-  }
-
-  private void exchangeHandler(ChannelPipeline pipe, String name, Function<Object, Object> newEntry) {
-    // Get the next name to add before in order to end up at the same location
-    int encoderIndex = pipe.names().indexOf(name);
-    String nextName = pipe.names().get(encoderIndex + 1);
-
-    Object previousEntry = pipe.remove(name);
-    pipe.addBefore(nextName, name, (ChannelHandler) newEntry.apply(previousEntry));
   }
 
   /**
@@ -323,8 +262,6 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
       return;
 
     ifPipePresent(pipe -> {
-      EnumSet<EInterceptorFeature> features = operator.getFeatures();
-
       List<String> names = pipe.names();
 
       for (String pipeName : AVAILABLE_PIPE_NAMES) {
@@ -333,11 +270,10 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
           pipe.remove(registeredName);
       }
 
-      if (features.contains(EInterceptorFeature.METHOD_INTERCEPTION)) {
-        // Create new vanilla instance, because is not a @Sharable handler, so can't be added or removed multiple times
-        exchangeHandler(pipe, "encoder", operator::createVanilla);
-        pipe.channel().attr(HANDLER_KEY).remove();
-      }
+      Channel channel = pipe.channel();
+      for (IExternalInterceptorFeature externalFeature : this.attachedFeatures)
+        externalFeature.detach(handlerName, channel);
+      this.attachedFeatures.clear();
     });
 
     this.networkManager = null;
@@ -370,10 +306,5 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
   @Override
   public void setOutboundBytesInterceptor(FBytesInterceptor interceptor) {
     this.outboundBytesInterceptor = interceptor;
-  }
-
-  @Override
-  public void setMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler) {
-    this.methodInterceptionHandler = handler;
   }
 }

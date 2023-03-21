@@ -26,15 +26,9 @@ package me.blvckbytes.bbreflect;
 
 import me.blvckbytes.bbreflect.handle.ClassHandle;
 import me.blvckbytes.bbreflect.handle.EnumHandle;
-import me.blvckbytes.bbreflect.packets.EInterceptorFeature;
-import me.blvckbytes.bbreflect.packets.IInterceptor;
-import me.blvckbytes.bbreflect.packets.IInterceptorFeatureProvider;
 import me.blvckbytes.bbreflect.version.ServerVersion;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.EnumSet;
-import java.util.function.Consumer;
 
 public interface IReflectionHelper {
 
@@ -70,27 +64,6 @@ public interface IReflectionHelper {
    * @return Resolved enum handle
    */
   @Nullable EnumHandle getEnumOptional(RClass rc);
-
-  /**
-   * Setup the internal hooks and preparations necessary to intercept all packet I/O
-   * @param handlerName Name to use when adding a custom handler to a channel's pipeline
-   * @param featureProvider Provider of enabled features
-   * @param interceptor Handler which receives interceptor instances right after instantiation
-   */
-  void setupInterception(String handlerName, IInterceptorFeatureProvider featureProvider, Consumer<IInterceptor> interceptor) throws Exception;
-
-  /**
-   * Clean up all previously setup hooks and preparations to in essence roll back to vanilla
-   * state again. Does nothing if interception is not currently set up.
-   */
-  void cleanupInterception();
-
-  /**
-   * Get the interceptor instance which corresponds to a given player
-   * @param p Target player
-   * @return Interceptor instance if available, null otherwise, also null if interception is not set up
-   */
-  @Nullable IInterceptor getInterceptorFor(Player p);
 
   /**
    * Get the version the server currently runs on

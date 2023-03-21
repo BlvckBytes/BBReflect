@@ -25,41 +25,42 @@
 package me.blvckbytes.bbreflect.packets;
 
 import me.blvckbytes.autowirer.ICleanable;
-import me.blvckbytes.bbreflect.IReflectionHelper;
-import me.blvckbytes.bbreflect.patching.IOwnedMethodInterceptionHandler;
+import me.blvckbytes.bbreflect.ReflectionHelper;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.logging.Logger;
 
-public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptorRegistry, IOwnedMethodInterceptionHandler {
+public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptorRegistry {
 
-  private final IReflectionHelper reflectionHelper;
   private final PrioritizedSet<FPacketInterceptor> inboundPacketInterceptors, outboundPacketInterceptors;
   private final PrioritizedSet<FBytesInterceptor> inboundBytesInterceptors, outboundBytesInterceptors;
-  private final PrioritizedSet<IOwnedMethodInterceptionHandler> methodInterceptionHandlers;
+  private final PrioritizedSet<IExternalInterceptorFeature> externalInterceptorFeatures;
+
+  private final InterceptorFactory interceptorFactory;
 
   public PacketInterceptorRegistry(
     JavaPlugin plugin,
-    IReflectionHelper reflectionHelper,
-    IInterceptorFeatureProvider featureProvider
+    Logger logger,
+    ReflectionHelper reflectionHelper
   ) throws Exception {
-    this.reflectionHelper = reflectionHelper;
-
     this.inboundPacketInterceptors = new PrioritizedSet<>();
     this.outboundPacketInterceptors = new PrioritizedSet<>();
     this.inboundBytesInterceptors = new PrioritizedSet<>();
     this.outboundBytesInterceptors = new PrioritizedSet<>();
-    this.methodInterceptionHandlers = new PrioritizedSet<>();
+    this.externalInterceptorFeatures = new PrioritizedSet<>();
 
-    reflectionHelper.setupInterception(plugin.getName(), featureProvider, this::setupInterceptor);
+    this.interceptorFactory = new InterceptorFactory(externalInterceptorFeatures, logger, reflectionHelper, plugin.getName());
+    Bukkit.getPluginManager().registerEvents(this.interceptorFactory, plugin);
+
+    this.interceptorFactory.setupInterception(this::setupInterceptor);
   }
 
   @Override
   public void cleanup() {
-    reflectionHelper.cleanupInterception();
+    this.interceptorFactory.cleanupInterception();
   }
 
   @Override
@@ -103,13 +104,18 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
   }
 
   @Override
-  public void registerMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler, EPriority priority) {
-    this.methodInterceptionHandlers.add(handler, priority);
+  public void registerExternalInterceptorFeature(IExternalInterceptorFeature feature, EPriority priority) {
+    this.externalInterceptorFeatures.add(feature, priority);
   }
 
   @Override
-  public void unregisterMethodInterceptionHandler(IOwnedMethodInterceptionHandler handler) {
-    this.methodInterceptionHandlers.remove(handler);
+  public void unregisterExternalInterceptorFeature(IExternalInterceptorFeature feature) {
+    this.externalInterceptorFeatures.remove(feature);
+  }
+
+  @Override
+  public @Nullable IInterceptor getPlayerInterceptor(Player p) {
+    return this.interceptorFactory.getPlayerInterceptor(p);
   }
 
   private @Nullable Object callPacketInterceptors(Iterable<FPacketInterceptor> interceptors, IPacketOwner owner, Object packet, Object channel) throws Exception {
@@ -136,37 +142,10 @@ public class PacketInterceptorRegistry implements ICleanable, IPacketInterceptor
     return resultingBuffer;
   }
 
-  @Override
-  public String handleStringifiedComponent(IPacketOwner owner, String input) {
-    for (IOwnedMethodInterceptionHandler interceptionHandler : methodInterceptionHandlers)
-      input = interceptionHandler.handleStringifiedComponent(owner, input);
-    return input;
-  }
-
-  @Override
-  public void handleNBTTagCompound(IPacketOwner owner, Object input, Consumer<@Nullable Runnable> serializeAndRestore) {
-    List<Runnable> restoreCallbacks = new ArrayList<>();
-
-    for (IOwnedMethodInterceptionHandler interceptionHandler : methodInterceptionHandlers) {
-      interceptionHandler.handleNBTTagCompound(owner, input, restoreCallback -> {
-        if (restoreCallback != null)
-          restoreCallbacks.add(restoreCallback);
-      });
-    }
-
-    // Whoever calls serializeAndRestore.accept, invokes serialization.
-    // So only do this once, at the end of interception. This way, it's also guaranteed to execute.
-    serializeAndRestore.accept(() -> {
-      for (Runnable restoreCallback : restoreCallbacks)
-        restoreCallback.run();
-    });
-  }
-
   private void setupInterceptor(IInterceptor interceptor) {
     interceptor.setInboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(inboundPacketInterceptors, owner, packet, channel));
     interceptor.setOutboundPacketInterceptor((owner, packet, channel) -> this.callPacketInterceptors(outboundPacketInterceptors, owner, packet, channel));
     interceptor.setInboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(inboundBytesInterceptors, owner, buffer, channel));
     interceptor.setOutboundBytesInterceptor((owner, buffer, channel) -> this.callBytesInterceptors(outboundBytesInterceptors, owner, buffer, channel));
-    interceptor.setMethodInterceptionHandler(this);
   }
 }

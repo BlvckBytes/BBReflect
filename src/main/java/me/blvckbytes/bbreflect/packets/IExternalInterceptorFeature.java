@@ -24,17 +24,12 @@
 
 package me.blvckbytes.bbreflect.packets;
 
-public enum EInterceptorFeature {
+import io.netty.channel.Channel;
 
-  // Intercept packet data serialization methods by injecting a custom encoder
-  METHOD_INTERCEPTION,
+public interface IExternalInterceptorFeature {
 
-  // Intercept packets right before they are encoded or after they are decoded
-  PACKET_INTERCEPTION,
+  void attach(String handlerName, Channel channel);
 
-  // Intercept packet bytes right before they are encoded or after they are decoded
-  BYTES_INTERCEPTION,
+  void detach(String handlerName, Channel channel);
 
-  // Add a custom encoder which will encode instances of RawPacket
-  RAW_PACKET_ENCODER
 }
