@@ -28,8 +28,8 @@ import io.netty.channel.Channel;
 
 public interface IExternalInterceptorFeature {
 
-  void attach(String handlerName, Channel channel);
+  void attach(IInterceptor interceptor, String handlerName, Channel channel);
 
-  void detach(String handlerName, Channel channel);
+  void detach(IInterceptor interceptor, String handlerName, Channel channel);
 
 }

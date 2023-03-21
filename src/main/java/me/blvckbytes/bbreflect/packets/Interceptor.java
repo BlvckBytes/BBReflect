@@ -247,7 +247,7 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
       Channel channel = pipe.channel();
       for (IExternalInterceptorFeature externalFeature : operator.getExternalInterceptorFeatures()) {
-        externalFeature.attach(handlerName, channel);
+        externalFeature.attach(this, handlerName, channel);
         this.attachedFeatures.add(externalFeature);
       }
     });
@@ -272,12 +272,17 @@ public class Interceptor extends ChannelDuplexHandler implements IInterceptor {
 
       Channel channel = pipe.channel();
       for (IExternalInterceptorFeature externalFeature : this.attachedFeatures)
-        externalFeature.detach(handlerName, channel);
+        externalFeature.detach(this, handlerName, channel);
       this.attachedFeatures.clear();
     });
 
     this.networkManager = null;
     this.handlerName = null;
+  }
+
+  @Override
+  public IPacketOwner getOwner() {
+    return this.packetOwner;
   }
 
   @Override

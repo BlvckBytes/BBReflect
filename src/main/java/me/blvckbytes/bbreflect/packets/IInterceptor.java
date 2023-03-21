@@ -28,6 +28,8 @@ import org.jetbrains.annotations.Nullable;
 
 public interface IInterceptor {
 
+  IPacketOwner getOwner();
+
   void sendPacket(Object packet, @Nullable Runnable completion) throws Exception;
 
   void setInboundPacketInterceptor(FPacketInterceptor interceptor);
