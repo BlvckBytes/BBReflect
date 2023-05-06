@@ -92,6 +92,7 @@ public enum ServerVersion {
   V1_19_R1(1, 19, 1, 760),
   V1_19_R2(1, 19, 2, 760),
   V1_19_R3(1, 19, 3, 761),
+  V1_19_R4(1, 19, 4, 762),
   ;
 
   private static final Pattern VERSION_PATTERN = Pattern.compile(".*\\(.*MC.\\s*([a-zA-z\\d\\-.]+).*");
