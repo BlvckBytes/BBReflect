@@ -81,7 +81,7 @@ public class ReflectionHelper implements IReflectionHelper {
       .withPublic(true)
       .withParameter(C_ENUM_PROTOCOL_DIRECTION, false, Assignability.TYPE_TO_TARGET)
       .withParameter(C_PACKET, false, Assignability.TYPE_TO_TARGET)
-      .withReturnType(Integer.class)
+      .withReturnType(Integer.class, true, Assignability.NONE)
       .required();
 
     E_ENUM_PROTOCOL_DIRECTION = C_ENUM_PROTOCOL_DIRECTION.asEnum();
