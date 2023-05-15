@@ -24,23 +24,28 @@
 
 package me.blvckbytes.bbreflect.packets.communicator;
 
-import org.jetbrains.annotations.Nullable;
+import me.blvckbytes.bbreflect.version.ServerVersion;
 
-import java.util.EnumSet;
+public enum EInventoryClickType {
+  PICKUP,
+  QUICK_MOVE,
+  SWAP,
+  CLONE,
+  THROW,
+  QUICK_CRAFT,
+  PICKUP_ALL,
 
-public class WindowItemsBlockingSession {
+  UNKNOWN
+  ;
 
-  private final EnumSet<EInventoryType> targets;
-  public final FFakeItemSupplier itemSupplier;
+  private static final EInventoryClickType[] values = values();
 
-  public @Nullable EInventoryClickType lastReceivedClickType;
+  public static EInventoryClickType fromOrdinal(int ordinal, ServerVersion version) {
+    // NOTE: For now, the server version is not taken into account, but this might change in the future
 
-  public WindowItemsBlockingSession(EnumSet<EInventoryType> targets, FFakeItemSupplier itemSupplier) {
-    this.targets = targets;
-    this.itemSupplier = itemSupplier;
-  }
+    if (ordinal < 0 || ordinal >= values.length)
+      return UNKNOWN;
 
-  public boolean doesTargetType(EInventoryType type) {
-    return this.targets.contains(type);
+    return values[ordinal];
   }
 }

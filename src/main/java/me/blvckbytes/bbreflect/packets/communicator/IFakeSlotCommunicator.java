@@ -26,6 +26,7 @@ package me.blvckbytes.bbreflect.packets.communicator;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 
@@ -36,5 +37,8 @@ public interface IFakeSlotCommunicator {
   void blockWindowItems(Player player, EnumSet<EInventoryType> targets, FFakeItemSupplier supplier);
 
   void unblockWindowItems(Player player);
+
+  @Nullable EInventoryClickType getLastReceivedClickType(Player player);
+
 
 }

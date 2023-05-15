@@ -36,6 +36,10 @@ public enum RClass {
     Class.forName("net.minecraft.network.EnumProtocol") :
     Class.forName("net.minecraft.server." + ver + ".EnumProtocol")
   ),
+  INVENTORY_CLICK_TYPE((ver, after) -> after ?
+    Class.forName("net.minecraft.world.inventory.InventoryClickType") :
+    Class.forName("net.minecraft.server." + ver + ".InventoryClickType")
+  ),
   ENUM_PROTOCOL_DIRECTION((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.EnumProtocolDirection") :
     Class.forName("net.minecraft.server." + ver + ".EnumProtocolDirection")
@@ -303,6 +307,10 @@ public enum RClass {
   PACKET_O_WINDOW_DATA((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutWindowData") :
     Class.forName("net.minecraft.server." + ver + ".PacketPlayOutWindowData")
+  ),
+  PACKET_I_WINDOW_CLICK((ver, after) -> after ?
+    Class.forName("net.minecraft.network.protocol.game.PacketPlayInWindowClick") :
+    Class.forName("net.minecraft.server." + ver + ".PacketPlayInWindowClick")
   ),
   PACKET_O_WINDOW_ITEMS((ver, after) -> after ?
     Class.forName("net.minecraft.network.protocol.game.PacketPlayOutWindowItems") :

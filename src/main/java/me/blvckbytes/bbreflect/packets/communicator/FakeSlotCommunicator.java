@@ -28,10 +28,7 @@ import me.blvckbytes.autowirer.ICleanable;
 import me.blvckbytes.autowirer.IInitializable;
 import me.blvckbytes.bbreflect.IReflectionHelper;
 import me.blvckbytes.bbreflect.RClass;
-import me.blvckbytes.bbreflect.handle.ClassHandle;
-import me.blvckbytes.bbreflect.handle.ConstructorHandle;
-import me.blvckbytes.bbreflect.handle.FieldHandle;
-import me.blvckbytes.bbreflect.handle.MethodHandle;
+import me.blvckbytes.bbreflect.handle.*;
 import me.blvckbytes.bbreflect.handle.predicate.Assignability;
 import me.blvckbytes.bbreflect.packets.EPriority;
 import me.blvckbytes.bbreflect.packets.IPacketInterceptorRegistry;
@@ -55,8 +52,9 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
   private final Set<Object> sentSetSlotPackets;
 
   private final ConstructorHandle CT_PO_SET_SLOT;
-  private final ClassHandle C_PO_SET_SLOT, C_PO_WINDOW_ITEMS;
-  private final FieldHandle F_PO_WINDOW_ITEMS__WINDOW_ID, F_PO_SET_SLOT__WINDOW_ID, F_PO_SET_SLOT__ITEM, F_PO_SET_SLOT__STATE_ID_OR_SLOT_ID;
+  private final ClassHandle C_PO_SET_SLOT, C_PO_WINDOW_ITEMS, C_PI_WINDOW_CLICK;
+  private final FieldHandle F_PO_WINDOW_ITEMS__WINDOW_ID, F_PO_SET_SLOT__WINDOW_ID, F_PO_SET_SLOT__ITEM,
+    F_PO_SET_SLOT__STATE_ID_OR_SLOT_ID, F_PI_WINDOW_CLICK__INVENTORY_CLICK_TYPE_ORDINAL;
   private final @Nullable FieldHandle F_PO_SET_SLOT__SLOT_ID;
   private final MethodHandle M_AS_NMS_COPY;
 
@@ -80,6 +78,25 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
 
     C_PO_WINDOW_ITEMS = reflectionHelper.getClass(RClass.PACKET_O_WINDOW_ITEMS);
     C_PO_SET_SLOT = reflectionHelper.getClass(RClass.PACKET_O_SET_SLOT);
+    C_PI_WINDOW_CLICK = reflectionHelper.getClass(RClass.PACKET_I_WINDOW_CLICK);
+    ClassHandle E_INVENTORY_CLICK_TYPE = reflectionHelper.getClass(RClass.INVENTORY_CLICK_TYPE);
+
+    F_PI_WINDOW_CLICK__INVENTORY_CLICK_TYPE_ORDINAL = C_PI_WINDOW_CLICK.locateField()
+      .withType(E_INVENTORY_CLICK_TYPE)
+      .withResponseTransformer(value -> {
+        assert value != null;
+        return (byte) ((Enum<?>) value).ordinal();
+      })
+      // In 1.8 and below, the click type has been a byte, which exactly represented
+      // the ordinal value of the nowadays enumeration
+      .orElse(() -> (
+        C_PI_WINDOW_CLICK.locateField()
+        .withVersionRange(null, ServerVersion.V1_8_R9)
+        .withType(byte.class)
+      ))
+      .required();
+
+
     ClassHandle C_ITEM_STACK = reflectionHelper.getClass(RClass.ITEM_STACK);
     ClassHandle C_CRAFT_ITEM_STACK = reflectionHelper.getClass(RClass.CRAFT_ITEM_STACK);
 
@@ -174,6 +191,31 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
     windowItemsBlockedPlayers.remove(player);
   }
 
+  @Override
+  public @Nullable EInventoryClickType getLastReceivedClickType(Player player) {
+    WindowItemsBlockingSession blockingSession = windowItemsBlockedPlayers.get(player);
+    if (blockingSession == null)
+      return null;
+    return blockingSession.lastReceivedClickType;
+  }
+
+  private @Nullable Object interceptIncoming(IPacketOwner packetOwner, Object packet, Object channel) throws Exception {
+    Player player = packetOwner.getPlayer();
+    if (player == null)
+      return packet;
+
+    WindowItemsBlockingSession blockingSession = windowItemsBlockedPlayers.get(player);
+    if (blockingSession == null)
+      return packet;
+
+    if (C_PI_WINDOW_CLICK.isInstance(packet)) {
+      byte clickTypeOrdinal = (byte) F_PI_WINDOW_CLICK__INVENTORY_CLICK_TYPE_ORDINAL.get(packet);
+      blockingSession.lastReceivedClickType = EInventoryClickType.fromOrdinal(clickTypeOrdinal, reflectionHelper.getVersion());
+    }
+
+    return packet;
+  }
+
   private @Nullable Object interceptOutgoing(IPacketOwner packetOwner, Object packet, Object channel) throws Exception {
     Player player = packetOwner.getPlayer();
     if (player == null)
@@ -235,11 +277,13 @@ public class FakeSlotCommunicator implements IFakeSlotCommunicator, IInitializab
   @Override
   public void cleanup() {
     interceptorRegistry.unregisterOutboundPacketInterceptor(this::interceptOutgoing);
+    interceptorRegistry.unregisterOutboundPacketInterceptor(this::interceptIncoming);
   }
 
   @Override
   public void initialize() {
     interceptorRegistry.registerOutboundPacketInterceptor(this::interceptOutgoing, EPriority.LOWEST);
+    interceptorRegistry.registerInboundPacketInterceptor(this::interceptIncoming, EPriority.LOWEST);
   }
 
   private boolean isWindowIdBlocked(WindowItemsBlockingSession blockingSession, int windowId) {
